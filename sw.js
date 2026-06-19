@@ -1,8 +1,9 @@
-const CACHE = 'grand-library-v1';
+const CACHE = 'grand-library-v2';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './firebase-config.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&display=swap'

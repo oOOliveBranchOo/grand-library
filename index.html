@@ -434,6 +434,79 @@ tbody tr.fav-row:hover { background: #FFE4EC !important; }
 /* Blacklist row style */
 tbody tr.bl-row td { opacity: .5; }
 
+/* SYNC MODAL */
+.sync-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(26, 28, 56, .45);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.sync-overlay.open { display: flex; }
+.sync-modal {
+  background: #F5EFE6;
+  border: 1px solid #8A7A6A;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(30,20,10,.35);
+  width: 100%; max-width: 420px;
+  max-height: 90vh; overflow-y: auto;
+}
+.sync-modal-head {
+  background: #E8C0C4;
+  border-bottom: 1px solid #C09098;
+  padding: 14px 18px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 600; color: #6A1020;
+}
+.sync-modal-body { padding: 16px 18px 18px; }
+.sync-field { margin-bottom: 12px; }
+.sync-field label {
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .8px;
+  color: #3C1838; margin-bottom: 4px;
+}
+.sync-field input {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #9AAAC0;
+  border-bottom: 2px solid #5A8AA8;
+  padding: 8px 10px;
+  font-family: 'EB Garamond', serif;
+  font-size: 15px; color: #1A1C38;
+  border-radius: 2px; outline: none;
+}
+.sync-field input:focus { border-color: #D4A85C; }
+.sync-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.sync-btn {
+  padding: 7px 16px; border-radius: 2px; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 600;
+  border: 1px solid #C0A860; background: #F0DCA8; color: #6A4808;
+}
+.sync-btn:hover { background: #D4C080; }
+.sync-btn-ghost {
+  border-color: #9AAAC0; background: #C8DCE8; color: #1A3848;
+}
+.sync-btn-ghost:hover { background: #A8C8D8; }
+.sync-note {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 13px; color: #5A4A3A; line-height: 1.45;
+  margin-bottom: 12px;
+}
+.sync-setup {
+  font-family: 'EB Garamond', serif;
+  font-size: 13px; color: #3C1838; line-height: 1.5;
+  background: #EDE5D8; border: 1px solid #C8B8A8;
+  padding: 10px 12px; border-radius: 2px;
+  margin-bottom: 12px;
+}
+.sync-setup ol { margin: 8px 0 0 18px; }
+.sync-setup li { margin-bottom: 4px; }
+.sync-setup code {
+  font-family: Consolas, monospace; font-size: 12px;
+  background: #F5EFE6; padding: 1px 4px;
+}
+
 </style>
 </head>
 <body>
@@ -493,8 +566,7 @@ tbody tr.bl-row td { opacity: .5; }
   <button class="tb-btn" onclick="addRow()">✦ Add Row</button>
   <button class="tb-btn-silver" onclick="deleteSelected()">Remove Selected</button>
   <div class="tb-sep"></div>
-  <button class="tb-btn-silver" id="btn-onedrive-link" onclick="linkOneDriveFolder()">☁ Link OneDrive</button>
-  <button class="tb-btn-silver" id="btn-onedrive-sync" onclick="pullFromOneDrive()" style="display:none">☁ Pull</button>
+  <button class="tb-btn-silver" id="btn-cloud-sync" onclick="openSyncModal()">☁ Sync Account</button>
   <button class="tb-btn-silver" onclick="exportBackup()">Backup</button>
   <button class="tb-btn-silver" onclick="document.getElementById('import-file').click()">Import</button>
   <input type="file" id="import-file" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
@@ -530,15 +602,64 @@ tbody tr.bl-row td { opacity: .5; }
 <div id="toast"></div>
 <div id="dd-overlay" class="dd-overlay" style="display:none;"></div>
 
+<div id="sync-overlay" class="sync-overlay" onclick="if(event.target===this)closeSyncModal()">
+  <div class="sync-modal">
+    <div class="sync-modal-head">☁ Sync Across Devices</div>
+    <div class="sync-modal-body">
+      <div id="sync-setup-panel" class="sync-setup" style="display:none">
+        <strong>One-time setup (about 5 minutes):</strong>
+        <ol>
+          <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener">console.firebase.google.com</a> → Create project</li>
+          <li>Build → Firestore Database → Create database (production mode)</li>
+          <li>Build → Authentication → Get started → enable <strong>Email/Password</strong></li>
+          <li>Project settings → Your apps → Web <code>&lt;/&gt;</code> → register app → copy the config</li>
+          <li>Paste keys into <code>firebase-config.js</code> in the project and set <code>enabled: true</code></li>
+          <li>Firestore → Rules → paste rules from <code>firestore.rules</code> → Publish</li>
+          <li>Refresh this app, then create your sync account below</li>
+        </ol>
+      </div>
+      <div id="sync-signed-out">
+        <div class="sync-note">Sign in with the same email and password on your phone and PC. Changes sync automatically — no importing.</div>
+        <div class="sync-field">
+          <label for="sync-email">Email</label>
+          <input id="sync-email" type="email" autocomplete="username" placeholder="you@example.com">
+        </div>
+        <div class="sync-field">
+          <label for="sync-password">Password</label>
+          <input id="sync-password" type="password" autocomplete="current-password" placeholder="At least 6 characters">
+        </div>
+        <div class="sync-actions">
+          <button class="sync-btn" onclick="cloudSignIn()">Sign In</button>
+          <button class="sync-btn" onclick="cloudSignUp()">Create Account</button>
+          <button class="sync-btn sync-btn-ghost" onclick="closeSyncModal()">Cancel</button>
+        </div>
+      </div>
+      <div id="sync-signed-in" style="display:none">
+        <div class="sync-note" id="sync-user-label"></div>
+        <div class="sync-actions">
+          <button class="sync-btn sync-btn-ghost" onclick="cloudSignOut()">Sign Out</button>
+          <button class="sync-btn sync-btn-ghost" onclick="closeSyncModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 var ACTIVE_TAB = 'completed';
 var STORAGE_KEY = 'grand_library_blank_v1';
-var SYNC_FILE = 'grand_library_sync.json';
 var SYNC_TIME_KEY = 'grand_library_synced_at';
-var ONEDRIVE_DIR = null;
-var ONEDRIVE_WRITE_TIMER = null;
-var IDB_NAME = 'grand-library-fs';
-var IDB_STORE = 'handles';
+var CLOUD_SYNCING = false;
+var CLOUD_WRITE_TIMER = null;
+var cloudAuth = null;
+var cloudDb = null;
+var cloudUnsub = null;
+var cloudUser = null;
+var cloudReady = false;
 
 
 var RAW = {"completed": [], "ongoing": [], "unknown": []};
@@ -673,7 +794,169 @@ function init() {
     persist();
   }
   applyFilters();
-  initOneDriveSync();
+  initCloudSync();
+}
+
+function cloudEnabled() {
+  return window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.enabled && window.FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
+}
+
+function initCloudSync() {
+  if (!cloudEnabled() || typeof firebase === 'undefined') {
+    updateSyncStatus();
+    return;
+  }
+  try {
+    firebase.initializeApp(window.FIREBASE_CONFIG);
+    cloudAuth = firebase.auth();
+    cloudDb = firebase.firestore();
+    cloudReady = true;
+    cloudAuth.onAuthStateChanged(function(user) {
+      cloudUser = user;
+      refreshSyncModal();
+      if (user) {
+        handleCloudLogin(user).then(function() {
+          startCloudListener();
+        });
+      } else {
+        stopCloudListener();
+      }
+      updateSyncStatus();
+    });
+  } catch (e) {
+    updateSyncStatus();
+  }
+}
+
+function openSyncModal() {
+  var setup = document.getElementById('sync-setup-panel');
+  if (setup) setup.style.display = cloudEnabled() ? 'none' : 'block';
+  refreshSyncModal();
+  document.getElementById('sync-overlay').classList.add('open');
+}
+
+function closeSyncModal() {
+  document.getElementById('sync-overlay').classList.remove('open');
+}
+
+function refreshSyncModal() {
+  var signedIn = !!cloudUser;
+  document.getElementById('sync-signed-out').style.display = signedIn ? 'none' : 'block';
+  document.getElementById('sync-signed-in').style.display = signedIn ? 'block' : 'none';
+  if (signedIn) {
+    document.getElementById('sync-user-label').textContent =
+      'Signed in as ' + cloudUser.email + '. Your library syncs automatically to all devices.';
+  }
+  var btn = document.getElementById('btn-cloud-sync');
+  if (btn) btn.textContent = signedIn ? '☁ Synced' : '☁ Sync Account';
+}
+
+function cloudSignIn() {
+  if (!cloudReady) { toast('Cloud sync is not set up yet.', 'err'); return; }
+  var email = document.getElementById('sync-email').value.trim();
+  var password = document.getElementById('sync-password').value;
+  if (!email || !password) { toast('Enter email and password.', 'err'); return; }
+  cloudAuth.signInWithEmailAndPassword(email, password).then(function() {
+    closeSyncModal();
+    toast('✦ Signed in — library will sync automatically.', 'ok');
+  }).catch(function(err) {
+    toast(err.message || 'Sign in failed.', 'err');
+  });
+}
+
+function cloudSignUp() {
+  if (!cloudReady) { toast('Cloud sync is not set up yet.', 'err'); return; }
+  var email = document.getElementById('sync-email').value.trim();
+  var password = document.getElementById('sync-password').value;
+  if (!email || password.length < 6) { toast('Use an email and password (6+ chars).', 'err'); return; }
+  cloudAuth.createUserWithEmailAndPassword(email, password).then(function() {
+    closeSyncModal();
+    toast('✦ Account created — syncing your library.', 'ok');
+  }).catch(function(err) {
+    toast(err.message || 'Could not create account.', 'err');
+  });
+}
+
+function cloudSignOut() {
+  if (!cloudAuth) return;
+  cloudAuth.signOut().then(function() {
+    closeSyncModal();
+    toast('Signed out of cloud sync.', 'ok');
+  });
+}
+
+async function handleCloudLogin(user) {
+  if (!cloudDb) return;
+  var ref = cloudDb.collection('libraries').doc(user.uid);
+  var snap = await ref.get();
+  var localAt = null;
+  try { localAt = localStorage.getItem(SYNC_TIME_KEY); } catch (e) {}
+  if (!snap.exists) {
+    if (DATA.length) await ref.set(buildBackupPayload());
+    return;
+  }
+  var remote = snap.data();
+  if (!remote || !Array.isArray(remote.data)) return;
+  if (!DATA.length) {
+    applyRemoteData(remote, false);
+    return;
+  }
+  if (isNewer(remote.exportedAt, localAt)) {
+    applyRemoteData(remote, false);
+  } else if (isNewer(localAt, remote.exportedAt)) {
+    await ref.set(buildBackupPayload());
+  } else if (remote.data.length !== DATA.length) {
+    if (confirm('Cloud has ' + remote.data.length + ' books, this device has ' + DATA.length + '. Use the cloud copy?')) {
+      applyRemoteData(remote, false);
+    } else {
+      await ref.set(buildBackupPayload());
+    }
+  }
+}
+
+function applyRemoteData(remote, showToast) {
+  CLOUD_SYNCING = true;
+  DATA = remote.data || [];
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+    if (remote.exportedAt) localStorage.setItem(SYNC_TIME_KEY, remote.exportedAt);
+  } catch (e) {}
+  applyFilters();
+  CLOUD_SYNCING = false;
+  updateSyncStatus();
+  if (showToast !== false) toast('✦ Library synced from cloud.', 'ok');
+}
+
+function startCloudListener() {
+  stopCloudListener();
+  if (!cloudDb || !cloudUser) return;
+  cloudUnsub = cloudDb.collection('libraries').doc(cloudUser.uid).onSnapshot(function(snap) {
+    if (!snap.exists || CLOUD_SYNCING) return;
+    var remote = snap.data();
+    if (!remote || !Array.isArray(remote.data)) return;
+    var localAt = null;
+    try { localAt = localStorage.getItem(SYNC_TIME_KEY); } catch (e) {}
+    if (remote.exportedAt === localAt) return;
+    if (!isNewer(remote.exportedAt, localAt) && DATA.length) return;
+    applyRemoteData(remote, true);
+  });
+}
+
+function stopCloudListener() {
+  if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+}
+
+function scheduleCloudWrite() {
+  if (!cloudDb || !cloudUser || CLOUD_SYNCING) return;
+  clearTimeout(CLOUD_WRITE_TIMER);
+  CLOUD_WRITE_TIMER = setTimeout(function() {
+    var payload = buildBackupPayload();
+    cloudDb.collection('libraries').doc(cloudUser.uid).set(payload).then(function() {
+      updateSyncStatus();
+    }).catch(function() {
+      updateSyncStatus('✦ Saved locally · cloud sync unavailable');
+    });
+  }, 600);
 }
 
 function buildBackupPayload() {
@@ -700,98 +983,19 @@ function updateSyncStatus(msg) {
     el.textContent = msg;
     return;
   }
-  if (ONEDRIVE_DIR) {
-    el.textContent = '✦ Saved · ☁ OneDrive linked (auto-syncs on change)';
+  if (cloudUser) {
+    el.textContent = '✦ Synced across devices';
+  } else if (cloudEnabled()) {
+    el.textContent = '✦ Saved on this device · tap ☁ Sync Account to link phone + PC';
   } else {
-    el.textContent = '✦ Saved on this device · Link OneDrive or use Backup / Import to sync';
+    el.textContent = '✦ Saved on this device · set up ☁ Sync Account for auto-sync';
   }
 }
 
-function openIdb() {
-  return new Promise(function(resolve, reject) {
-    var req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = function() {
-      req.result.createObjectStore(IDB_STORE);
-    };
-    req.onsuccess = function() { resolve(req.result); };
-    req.onerror = function() { reject(req.error); };
-  });
-}
-
-function saveDirHandle(handle) {
-  return openIdb().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction(IDB_STORE, 'readwrite');
-      tx.objectStore(IDB_STORE).put(handle, 'onedrive');
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function() { reject(tx.error); };
-    });
-  });
-}
-
-function loadDirHandle() {
-  return openIdb().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction(IDB_STORE, 'readonly');
-      var req = tx.objectStore(IDB_STORE).get('onedrive');
-      req.onsuccess = function() { resolve(req.result || null); };
-      req.onerror = function() { reject(req.error); };
-    });
-  }).catch(function() { return null; });
-}
-
-function clearDirHandle() {
-  return openIdb().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction(IDB_STORE, 'readwrite');
-      tx.objectStore(IDB_STORE).delete('onedrive');
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function() { reject(tx.error); };
-    });
-  }).catch(function() {});
-}
-
-async function ensureDirPermission(dir) {
-  var perm = await dir.queryPermission({ mode: 'readwrite' });
-  if (perm === 'granted') return true;
-  perm = await dir.requestPermission({ mode: 'readwrite' });
-  return perm === 'granted';
-}
-
-async function readOneDriveBackup() {
-  if (!ONEDRIVE_DIR) return null;
-  try {
-    var fileHandle = await ONEDRIVE_DIR.getFileHandle(SYNC_FILE);
-    var file = await fileHandle.getFile();
-    var text = await file.text();
-    return parseBackupPayload(JSON.parse(text));
-  } catch (e) {
-    return null;
-  }
-}
-
-async function writeOneDriveBackup(payload) {
-  if (!ONEDRIVE_DIR) return false;
-  try {
-    if (!(await ensureDirPermission(ONEDRIVE_DIR))) return false;
-    var fileHandle = await ONEDRIVE_DIR.getFileHandle(SYNC_FILE, { create: true });
-    var writable = await fileHandle.createWritable();
-    await writable.write(JSON.stringify(payload, null, 2));
-    await writable.close();
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-function scheduleOneDriveWrite(payload) {
-  if (!ONEDRIVE_DIR) return;
-  clearTimeout(ONEDRIVE_WRITE_TIMER);
-  ONEDRIVE_WRITE_TIMER = setTimeout(function() {
-    writeOneDriveBackup(payload).then(function(ok) {
-      if (ok) updateSyncStatus('✦ Saved · ☁ Synced to OneDrive');
-    });
-  }, 800);
+function isNewer(isoA, isoB) {
+  if (!isoA) return false;
+  if (!isoB) return true;
+  return new Date(isoA).getTime() > new Date(isoB).getTime();
 }
 
 function applyBackupData(incoming, exportedAt, sourceLabel) {
@@ -801,124 +1005,8 @@ function applyBackupData(incoming, exportedAt, sourceLabel) {
     try { localStorage.setItem(SYNC_TIME_KEY, exportedAt); } catch (e) {}
   }
   applyFilters();
+  if (cloudUser && cloudDb) scheduleCloudWrite();
   toast('✦ Library updated from ' + sourceLabel + '.', 'ok');
-}
-
-function isNewer(isoA, isoB) {
-  if (!isoA) return false;
-  if (!isoB) return true;
-  return new Date(isoA).getTime() > new Date(isoB).getTime();
-}
-
-async function pullFromOneDrive() {
-  if (!ONEDRIVE_DIR) {
-    toast('Link a OneDrive folder first.', 'err');
-    return;
-  }
-  if (!(await ensureDirPermission(ONEDRIVE_DIR))) {
-    toast('OneDrive folder permission needed.', 'err');
-    return;
-  }
-  var remote = await readOneDriveBackup();
-  if (!remote) {
-    toast('No sync file found in linked folder.', 'err');
-    return;
-  }
-  var localAt = null;
-  try { localAt = localStorage.getItem(SYNC_TIME_KEY); } catch (e) {}
-  if (!isNewer(remote.exportedAt, localAt) && DATA.length > 0) {
-    if (!confirm('Cloud copy may be older than this device. Import anyway?')) return;
-  } else if (DATA.length > 0) {
-    if (!confirm('Replace this device with ' + remote.data.length + ' volume(s) from OneDrive?')) return;
-  }
-  applyBackupData(remote.data, remote.exportedAt, 'OneDrive');
-}
-
-async function initOneDriveSync() {
-  if (!window.showDirectoryPicker) {
-    var linkBtn = document.getElementById('btn-onedrive-link');
-    if (linkBtn) linkBtn.style.display = 'none';
-    return;
-  }
-  var handle = await loadDirHandle();
-  if (!handle) {
-    updateSyncStatus();
-    return;
-  }
-  try {
-    if (!(await ensureDirPermission(handle))) {
-      updateSyncStatus('☁ OneDrive linked — click Pull to reconnect');
-      document.getElementById('btn-onedrive-sync').style.display = '';
-      return;
-    }
-    ONEDRIVE_DIR = handle;
-    document.getElementById('btn-onedrive-link').textContent = '☁ OneDrive ✓';
-    document.getElementById('btn-onedrive-sync').style.display = '';
-    var remote = await readOneDriveBackup();
-    var localAt = null;
-    try { localAt = localStorage.getItem(SYNC_TIME_KEY); } catch (e) {}
-    if (remote && isNewer(remote.exportedAt, localAt)) {
-      DATA = remote.data;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); } catch (e) {}
-      if (remote.exportedAt) {
-        try { localStorage.setItem(SYNC_TIME_KEY, remote.exportedAt); } catch (e) {}
-      }
-      applyFilters();
-      updateSyncStatus('✦ Loaded newer copy from OneDrive');
-      toast('✦ Loaded newer library from OneDrive.', 'ok');
-    } else {
-      updateSyncStatus();
-    }
-  } catch (e) {
-    updateSyncStatus();
-  }
-}
-
-async function linkOneDriveFolder() {
-  if (!window.showDirectoryPicker) {
-    toast('OneDrive linking works in Chrome or Edge on desktop.', 'err');
-    return;
-  }
-  if (ONEDRIVE_DIR) {
-    if (confirm('OneDrive is linked. Unlink this folder?')) {
-      ONEDRIVE_DIR = null;
-      await clearDirHandle();
-      document.getElementById('btn-onedrive-link').textContent = '☁ Link OneDrive';
-      document.getElementById('btn-onedrive-sync').style.display = 'none';
-      updateSyncStatus();
-      toast('OneDrive folder unlinked.', 'ok');
-    }
-    return;
-  }
-  try {
-    var dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-    ONEDRIVE_DIR = dir;
-    await saveDirHandle(dir);
-    document.getElementById('btn-onedrive-link').textContent = '☁ OneDrive ✓';
-    document.getElementById('btn-onedrive-sync').style.display = '';
-    var remote = await readOneDriveBackup();
-    var localAt = null;
-    try { localAt = localStorage.getItem(SYNC_TIME_KEY); } catch (e) {}
-    if (remote && remote.data.length) {
-      if (isNewer(remote.exportedAt, localAt) || !DATA.length) {
-        if (confirm('Found existing sync file with ' + remote.data.length + ' volume(s). Load it now?')) {
-          applyBackupData(remote.data, remote.exportedAt, 'OneDrive');
-        } else {
-          await writeOneDriveBackup(buildBackupPayload());
-        }
-      } else if (DATA.length) {
-        if (confirm('Upload this device\'s ' + DATA.length + ' volume(s) to OneDrive?')) {
-          await writeOneDriveBackup(buildBackupPayload());
-        }
-      }
-    } else if (DATA.length) {
-      await writeOneDriveBackup(buildBackupPayload());
-    }
-    updateSyncStatus();
-    toast('✦ OneDrive folder linked — changes auto-save there.', 'ok');
-  } catch (e) {
-    if (e && e.name !== 'AbortError') toast('Could not link OneDrive folder.', 'err');
-  }
 }
 
 function persist(opts) {
@@ -927,7 +1015,7 @@ function persist(opts) {
     var payload = buildBackupPayload();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     localStorage.setItem(SYNC_TIME_KEY, payload.exportedAt);
-    if (!opts.skipCloudWrite) scheduleOneDriveWrite(payload);
+    if (!opts.skipCloudWrite) scheduleCloudWrite();
     updateSyncStatus();
   } catch(e){}
 }
@@ -1309,7 +1397,6 @@ function importBackup(input) {
       var msg = 'Replace your library on this device with ' + backup.data.length + ' volume(s) from the backup?';
       if (!confirm(msg)) return;
       applyBackupData(backup.data, backup.exportedAt, 'backup file');
-      writeOneDriveBackup(buildBackupPayload());
     } catch (e) {
       toast('Could not read that backup file.','err');
     }
