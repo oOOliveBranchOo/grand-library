@@ -1,11 +1,9 @@
-// One-time setup: set enabled to true and fill in your Firebase project keys.
-// Open the app → ☁ Sync Account for step-by-step instructions.
 window.FIREBASE_CONFIG = {
-  enabled: false,
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID'
+  enabled: true,
+  apiKey: 'AIzaSyD3T3xWxnwlkn0pfZ2t_pvPrlr_B8YPrIw',
+  authDomain: 'grand-library-b5e2e.firebaseapp.com',
+  projectId: 'grand-library-b5e2e',
+  storageBucket: 'grand-library-b5e2e.firebasestorage.app',
+  messagingSenderId: '791177996708',
+  appId: '1:791177996708:web:0e3912a461cbc8f617b931'
 };
