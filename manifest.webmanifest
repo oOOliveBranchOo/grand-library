@@ -1,0 +1,30 @@
+{
+  "name": "The Grand Library",
+  "short_name": "Grand Library",
+  "description": "Personal book list tracker",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F0E8DC",
+  "theme_color": "#2D2F56",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
