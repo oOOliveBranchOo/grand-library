@@ -1,4 +1,4 @@
-const CACHE = 'grand-library-v4';
+const CACHE = 'grand-library-v5';
 const ASSETS = [
   './manifest.webmanifest',
   './firebase-config.js',

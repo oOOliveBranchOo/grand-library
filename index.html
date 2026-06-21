@@ -738,7 +738,7 @@ tbody tr.bl-row td { opacity: .5; }
       <span class="tb-label">Discover</span>
       <input class="discover-search" type="text" id="discover-search" placeholder="Search manga, manhwa, manhua…" autocomplete="off">
     </div>
-    <div class="discover-hint">✦ Search by title — results from AniList, with MyAnimeList as fallback.</div>
+    <div class="discover-hint">✦ Search by title — AniList first, then MangaUpdates, then MyAnimeList as fallback.</div>
   </div>
   <div class="discover-body" id="discover-body">
     <div class="discover-status" id="discover-status">Begin typing a title to search the archives…</div>
@@ -945,6 +945,28 @@ function normalizeJikanItem(m) {
   };
 }
 
+function normalizeMangaUpdatesItem(r) {
+  if (r.title && r.source === 'MangaUpdates') return r;
+  return r;
+}
+
+function mangaUpdatesProxyUrl() {
+  return window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.functionsSearchUrl;
+}
+
+function searchMangaUpdates(q) {
+  var base = mangaUpdatesProxyUrl();
+  if (!base) return Promise.resolve([]);
+  return fetch(base + '?q=' + encodeURIComponent(q))
+    .then(function(r) {
+      if (!r.ok) throw new Error('MangaUpdates proxy unavailable');
+      return r.json();
+    })
+    .then(function(json) {
+      return (json.results || []).map(normalizeMangaUpdatesItem);
+    });
+}
+
 function searchAnilist(q) {
   var query = 'query($search:String){Page(page:1,perPage:20){media(search:$search,type:MANGA,sort:SEARCH_MATCH){id title{romaji english native}coverImage{medium large}status genres tags{name isGeneralSpoiler}chapters description(asHtml:false)}}}';
   return fetch('https://graphql.anilist.co', {
@@ -986,20 +1008,41 @@ function runDiscoverSearch(q) {
       renderDiscoverResults(results, 'AniList');
       return;
     }
-    return searchJikan(q).then(function(fallback) {
+    return searchMangaUpdates(q).then(function(muResults) {
       if (reqId !== DISCOVER_REQ_ID) return;
-      if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
-      else setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
+      if (muResults.length) {
+        renderDiscoverResults(muResults, 'MangaUpdates');
+        return;
+      }
+      return searchJikan(q).then(function(fallback) {
+        if (reqId !== DISCOVER_REQ_ID) return;
+        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        else setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
+      });
     });
   }).catch(function() {
     if (reqId !== DISCOVER_REQ_ID) return;
-    searchJikan(q).then(function(fallback) {
+    searchMangaUpdates(q).then(function(muResults) {
       if (reqId !== DISCOVER_REQ_ID) return;
-      if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
-      else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      if (muResults.length) {
+        renderDiscoverResults(muResults, 'MangaUpdates');
+        return;
+      }
+      return searchJikan(q).then(function(fallback) {
+        if (reqId !== DISCOVER_REQ_ID) return;
+        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      });
     }).catch(function() {
       if (reqId !== DISCOVER_REQ_ID) return;
-      setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      searchJikan(q).then(function(fallback) {
+        if (reqId !== DISCOVER_REQ_ID) return;
+        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      }).catch(function() {
+        if (reqId !== DISCOVER_REQ_ID) return;
+        setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      });
     });
   });
 }
@@ -1066,6 +1109,7 @@ function openDiscoverDetail(idx) {
     + '<div class="discover-detail-row"><strong>Genres & Tags</strong>' + escHtml(allTags.join(', ') || '—') + '</div>'
     + (r.comment ? '<div class="discover-detail-row"><strong>Summary</strong>' + escHtml(r.comment) + '</div>' : '')
     + '<div class="discover-detail-row"><strong>Source</strong>' + escHtml(r.source) + '</div>'
+    + (r.muUrl ? '<div class="discover-detail-row"><strong>MangaUpdates</strong><a href="' + escHtml(r.muUrl) + '" target="_blank" rel="noopener">' + escHtml(r.muUrl) + '</a></div>' : '')
     + '<div class="sync-actions" style="margin-top:14px">'
     + '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>'
     + '<button class="sync-btn sync-btn-ghost" onclick="closeDiscoverDetail()">Close</button>'

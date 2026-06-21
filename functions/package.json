@@ -1,0 +1,13 @@
+{
+  "name": "grand-library-functions",
+  "description": "Cloud Functions proxy for Grand Library Discover",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-functions": "^6.3.2",
+    "firebase-admin": "^13.0.2"
+  },
+  "private": true
+}
