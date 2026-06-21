@@ -644,6 +644,28 @@ tbody tr.bl-row td { opacity: .5; }
   font-size: 13px; color: #5A4A3A; margin-bottom: 14px;
 }
 
+.new-tag-list { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 16px; }
+.new-tag-row {
+  background: #EDE5D8; border: 1px solid #C8B8A8;
+  border-radius: 2px; padding: 10px 12px;
+}
+.new-tag-name {
+  font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 600;
+  color: #3C1838; margin-bottom: 8px;
+}
+.new-tag-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.new-tag-btn {
+  padding: 4px 10px; border-radius: 2px; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 11px; font-weight: 600;
+  border: 1px solid #C0A860; background: #F0DCA8; color: #6A4808;
+}
+.new-tag-btn-teal {
+  border-color: #7AAAC0; background: #C8DCE8; color: #1A3848;
+}
+.new-tag-btn-skip {
+  border-color: #B8A898; background: #F5EFE6; color: #5A4A3A;
+}
+
 </style>
 </head>
 <body>
@@ -751,6 +773,13 @@ tbody tr.bl-row td { opacity: .5; }
   <div class="discover-detail">
     <div class="discover-detail-head" id="discover-detail-title">Volume Details</div>
     <div class="discover-detail-body" id="discover-detail-body"></div>
+  </div>
+</div>
+
+<div id="new-tag-overlay" class="discover-detail-overlay" onclick="if(event.target===this)cancelNewTagApproval()">
+  <div class="discover-detail">
+    <div class="discover-detail-head">✦ New Tags Found</div>
+    <div class="discover-detail-body" id="new-tag-body"></div>
   </div>
 </div>
 
@@ -1126,15 +1155,84 @@ function importDiscoverResult(idx) {
   if (!r) return;
   var dup = DATA.some(function(b){ return b.title.toLowerCase() === r.title.toLowerCase(); });
   if (dup && !confirm('“' + r.title + '” may already be in your library. Import anyway?')) return;
-  var rawTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; });
+  var mapped = mapDiscoverTags(r.genres, r.tags);
+  if (mapped.unknownTags.length) {
+    showNewTagApproval(mapped, r);
+  } else {
+    finishDiscoverImport(r, mapped);
+  }
+}
+
+function finishDiscoverImport(r, mapped) {
   var book = addBookEntry({
     title: r.title,
     status: r.status,
     chapter: r.chapters,
     comment: r.comment,
-    subgenres: rawTags
+    genre: mapped.genre,
+    subgenres: mapped.subgenres
   });
   toast('✦ “' + book.title + '” added to ' + sectionLabel(sectionOf(book)) + '.', 'ok');
+}
+
+var PENDING_TAG_IMPORT = null;
+
+function showNewTagApproval(mapped, discoverResult) {
+  PENDING_TAG_IMPORT = { mapped: mapped, discoverResult: discoverResult, decisions: {} };
+  var body = document.getElementById('new-tag-body');
+  var html = '<div class="discover-detail-note">These tags from the source don\'t match your sub-genre list yet. Add them to Story Type or Setting, or skip each one.</div>'
+    + '<div class="new-tag-list" id="new-tag-list"></div>'
+    + '<div class="sync-actions">'
+    + '<button type="button" class="sync-btn sync-btn-ghost" id="new-tag-cancel">Cancel Import</button>'
+    + '</div>';
+  body.innerHTML = html;
+  var list = document.getElementById('new-tag-list');
+  mapped.unknownTags.forEach(function(tag) {
+    var row = document.createElement('div');
+    row.className = 'new-tag-row';
+    row.innerHTML = '<div class="new-tag-name">New tag found: “' + escHtml(tag) + '”</div>'
+      + '<div class="new-tag-actions">'
+      + '<button type="button" class="new-tag-btn">Story Type</button>'
+      + '<button type="button" class="new-tag-btn new-tag-btn-teal">Setting</button>'
+      + '<button type="button" class="new-tag-btn new-tag-btn-skip">Skip</button>'
+      + '</div>';
+    row.querySelector('.new-tag-btn').addEventListener('click', function(){ resolveNewTag(tag, 'Story Type'); });
+    row.querySelector('.new-tag-btn-teal').addEventListener('click', function(){ resolveNewTag(tag, 'Setting'); });
+    row.querySelector('.new-tag-btn-skip').addEventListener('click', function(){ resolveNewTag(tag, null); });
+    list.appendChild(row);
+  });
+  document.getElementById('new-tag-cancel').addEventListener('click', cancelNewTagApproval);
+  document.getElementById('new-tag-overlay').classList.add('open');
+}
+
+function escAttr(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function resolveNewTag(tag, group) {
+  if (!PENDING_TAG_IMPORT) return;
+  PENDING_TAG_IMPORT.decisions[tag] = group;
+  var remaining = PENDING_TAG_IMPORT.mapped.unknownTags.filter(function(t) {
+    return PENDING_TAG_IMPORT.decisions[t] === undefined;
+  });
+  if (remaining.length) return;
+  var mapped = PENDING_TAG_IMPORT.mapped;
+  var r = PENDING_TAG_IMPORT.discoverResult;
+  PENDING_TAG_IMPORT.mapped.unknownTags.forEach(function(t) {
+    var groupChoice = PENDING_TAG_IMPORT.decisions[t];
+    if (groupChoice === 'Story Type' || groupChoice === 'Setting') {
+      addCustomSubgenre(groupChoice, t);
+      if (mapped.subgenres.indexOf(t) === -1) mapped.subgenres.push(t);
+    }
+  });
+  document.getElementById('new-tag-overlay').classList.remove('open');
+  PENDING_TAG_IMPORT = null;
+  finishDiscoverImport(r, mapped);
+}
+
+function cancelNewTagApproval() {
+  PENDING_TAG_IMPORT = null;
+  document.getElementById('new-tag-overlay').classList.remove('open');
 }
 
 function onDiscoverSearchInput() {
@@ -1162,6 +1260,156 @@ var SUBGENRES = {
   'Story Type': ['Action','Comedy','Drama','Horror','Mystery','Romance','Thriller','Slice of Life','Smut / Mature'],
   'Setting':    ['Fantasy','Historical','Isekai / Reincarnation','Modern','Sci-Fi','Supernatural','Omegaverse','Martial Arts']
 };
+var CUSTOM_SUBGENRES_KEY = 'grand_library_custom_subgenres_v1';
+
+var GENRE_EXACT = {
+  'BL': ['boys love', "boy's love", 'yaoi'],
+  'YURI': ['girls love', "girl's love", 'yuri'],
+  'STRAIGHT': ['straight'],
+  'OTHER': ['other']
+};
+
+var SUBGENRE_ALIAS = {
+  'Action': ['action'],
+  'Comedy': ['comedy'],
+  'Drama': ['drama'],
+  'Horror': ['horror'],
+  'Mystery': ['mystery'],
+  'Romance': ['romance'],
+  'Thriller': ['thriller'],
+  'Slice of Life': ['slice of life'],
+  'Smut / Mature': ['smut / mature', 'smut', 'mature', 'sexual content'],
+  'Fantasy': ['fantasy'],
+  'Historical': ['historical'],
+  'Isekai / Reincarnation': ['isekai / reincarnation', 'isekai', 'reincarnation'],
+  'Modern': ['modern'],
+  'Sci-Fi': ['sci-fi', 'sci fi', 'science fiction'],
+  'Supernatural': ['supernatural'],
+  'Omegaverse': ['omegaverse'],
+  'Martial Arts': ['martial arts']
+};
+
+var TAG_IGNORE = {
+  'shounen': 1, 'seinen': 1, 'shoujo': 1, 'josei': 1, 'manhwa': 1, 'manhua': 1,
+  'manga': 1, 'webtoon': 1, 'novel': 1, 'artbook': 1, 'bl': 1, 'gl': 1, 'yaoi': 1, 'yuri': 1,
+  'boys love': 1, "boy's love": 1, 'girls love': 1, "girl's love": 1,
+  'straight': 1, 'other': 1, 'psychological': 1, 'sports': 1, 'music': 1,
+  'mecha': 1, 'school life': 1, 'ecchi': 1
+};
+
+function normalizeTag(tag) {
+  return (tag || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function refreshAllSubgenres() {
+  ALL_SUBGENRES = Object.values(SUBGENRES).flat();
+}
+
+function loadCustomSubgenres() {
+  try {
+    var saved = JSON.parse(localStorage.getItem(CUSTOM_SUBGENRES_KEY) || '{}');
+    ['Story Type', 'Setting'].forEach(function(group) {
+      if (!SUBGENRES[group]) SUBGENRES[group] = [];
+      (saved[group] || []).forEach(function(tag) {
+        if (SUBGENRES[group].indexOf(tag) === -1) SUBGENRES[group].push(tag);
+      });
+    });
+  } catch (e) {}
+  refreshAllSubgenres();
+  rebuildSubgenreFilterSelect();
+}
+
+function saveCustomSubgenres() {
+  try {
+    var base = {
+      'Story Type': ['Action','Comedy','Drama','Horror','Mystery','Romance','Thriller','Slice of Life','Smut / Mature'],
+      'Setting': ['Fantasy','Historical','Isekai / Reincarnation','Modern','Sci-Fi','Supernatural','Omegaverse','Martial Arts']
+    };
+    var custom = { 'Story Type': [], 'Setting': [] };
+    ['Story Type', 'Setting'].forEach(function(group) {
+      SUBGENRES[group].forEach(function(tag) {
+        if (base[group].indexOf(tag) === -1) custom[group].push(tag);
+      });
+    });
+    localStorage.setItem(CUSTOM_SUBGENRES_KEY, JSON.stringify(custom));
+  } catch (e) {}
+}
+
+function addCustomSubgenre(group, tag) {
+  if (!SUBGENRES[group]) return;
+  if (SUBGENRES[group].indexOf(tag) === -1) {
+    SUBGENRES[group].push(tag);
+    refreshAllSubgenres();
+    saveCustomSubgenres();
+    rebuildSubgenreFilterSelect();
+    toast('✦ “' + tag + '” added to ' + group + '.', 'ok');
+  }
+}
+
+function rebuildSubgenreFilterSelect() {
+  var sel = document.getElementById('filter-subgenre');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">All Sub-Genres</option>';
+  Object.entries(SUBGENRES).forEach(function(entry) {
+    var group = entry[0], items = entry[1];
+    var og = document.createElement('optgroup');
+    og.label = group;
+    items.forEach(function(tag) {
+      var o = document.createElement('option');
+      o.value = tag;
+      o.textContent = tag;
+      if (tag === current) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function mapGenreFromTags(tags) {
+  var found = '';
+  tags.forEach(function(tag) {
+    if (found) return;
+    var n = normalizeTag(tag);
+    Object.keys(GENRE_EXACT).forEach(function(genre) {
+      if (found) return;
+      if (GENRE_EXACT[genre].indexOf(n) !== -1) found = genre;
+    });
+  });
+  return found;
+}
+
+function mapSubgenresFromTags(tags) {
+  var matched = [];
+  tags.forEach(function(tag) {
+    var n = normalizeTag(tag);
+    Object.keys(SUBGENRE_ALIAS).forEach(function(canonical) {
+      if (SUBGENRE_ALIAS[canonical].indexOf(n) !== -1 && matched.indexOf(canonical) === -1) {
+        matched.push(canonical);
+      }
+    });
+  });
+  return matched;
+}
+
+function mapDiscoverTags(genreList, extraTags) {
+  genreList = (genreList || []).filter(Boolean);
+  extraTags = (extraTags || []).filter(Boolean);
+  var allTags = genreList.concat(extraTags);
+  var genre = mapGenreFromTags(allTags);
+  var subgenres = mapSubgenresFromTags(allTags);
+  var unknownTags = [];
+  genreList.forEach(function(tag) {
+    var n = normalizeTag(tag);
+    if (!n || TAG_IGNORE[n]) return;
+    if (mapGenreFromTags([tag])) return;
+    if (mapSubgenresFromTags([tag]).length) return;
+    if (ALL_SUBGENRES.some(function(s){ return normalizeTag(s) === n; })) return;
+    if (unknownTags.indexOf(tag) === -1) unknownTags.push(tag);
+  });
+  return { genre: genre, subgenres: subgenres, unknownTags: unknownTags };
+}
+
 var ALL_SUBGENRES = Object.values(SUBGENRES).flat();
 
 function sgClass(sg) {
@@ -1176,16 +1424,27 @@ function renderSgTags(sgs) {
 }
 
 var SG_DD_OPEN = null;
+var SG_DD_CELL = null;
+
+function refreshSgCell(td, sgs) {
+  td.innerHTML = renderSgTags(sgs);
+}
 
 function openSgDropdown(id, td, e) {
   e.stopPropagation();
-  closeAll();
+  commitEdit();
+  document.getElementById('dd-overlay').style.display = 'none';
+  if (SG_DD_OPEN && SG_DD_CELL === td) return;
+  closeSgDd();
   var b = findBook(id); if(!b) return;
-  var current = b.subgenres || [];
+  if (!b.subgenres) b.subgenres = [];
+  SG_DD_CELL = td;
 
   var dd = document.createElement('div');
   dd.className = 'sg-dd';
   dd.id = 'sg-dd-overlay';
+  dd.addEventListener('mousedown', function(ev){ ev.stopPropagation(); });
+  dd.addEventListener('click', function(ev){ ev.stopPropagation(); });
 
   Object.entries(SUBGENRES).forEach(function(entry) {
     var groupName = entry[0], items = entry[1];
@@ -1198,23 +1457,31 @@ function openSgDropdown(id, td, e) {
       row.className = 'sg-dd-item';
       var cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.checked = current.includes(sg);
-      cb.addEventListener('change', function() {
-        var sgs = b.subgenres || [];
-        if(cb.checked) { if(!sgs.includes(sg)) sgs.push(sg); }
-        else { sgs = sgs.filter(function(x){ return x!==sg; }); }
+      cb.checked = b.subgenres.indexOf(sg) !== -1;
+      cb.addEventListener('click', function(ev){ ev.stopPropagation(); });
+      cb.addEventListener('change', function(ev) {
+        ev.stopPropagation();
+        var sgs = b.subgenres.slice();
+        if (cb.checked) {
+          if (sgs.indexOf(sg) === -1) sgs.push(sg);
+        } else {
+          sgs = sgs.filter(function(x){ return x !== sg; });
+        }
         b.subgenres = sgs;
         persist();
-        // Update the cell live
-        td.innerHTML = renderSgTags(sgs);
-        td.addEventListener('click', function(ev){ openSgDropdown(id, td, ev); });
+        refreshSgCell(td, sgs);
       });
       var lbl = document.createElement('span');
       lbl.textContent = sg;
       row.appendChild(cb);
       row.appendChild(lbl);
+      row.addEventListener('mousedown', function(ev){ ev.preventDefault(); ev.stopPropagation(); });
       row.addEventListener('click', function(ev){
-        if(ev.target !== cb) cb.click();
+        ev.stopPropagation();
+        if (ev.target !== cb) {
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change', { bubbles: false }));
+        }
       });
       dd.appendChild(row);
     });
@@ -1225,7 +1492,11 @@ function openSgDropdown(id, td, e) {
   var doneBtn = document.createElement('button');
   doneBtn.className = 'sg-done-btn';
   doneBtn.textContent = '✦ Done';
-  doneBtn.addEventListener('click', function(e){ e.stopPropagation(); closeSgDd(); applyFilters(); });
+  doneBtn.addEventListener('click', function(ev){
+    ev.stopPropagation();
+    closeSgDd();
+    applyFilters();
+  });
   footer.appendChild(doneBtn);
   dd.appendChild(footer);
 
@@ -1233,7 +1504,6 @@ function openSgDropdown(id, td, e) {
   var rect = td.getBoundingClientRect();
   var top = rect.bottom + window.scrollY;
   var left = rect.left;
-  // Keep in viewport
   if(left + 260 > window.innerWidth) left = window.innerWidth - 270;
   dd.style.top = top + 'px';
   dd.style.left = left + 'px';
@@ -1244,9 +1514,10 @@ function closeSgDd() {
   var existing = document.getElementById('sg-dd-overlay');
   if(existing) existing.parentNode.removeChild(existing);
   SG_DD_OPEN = null;
+  SG_DD_CELL = null;
 }
 
-document.addEventListener('click', function(e){
+document.addEventListener('mousedown', function(e){
   if(SG_DD_OPEN && !SG_DD_OPEN.contains(e.target)) closeSgDd();
 });
 
@@ -1264,6 +1535,7 @@ function loadSavedData() {
 }
 
 function init() {
+  loadCustomSubgenres();
   var saved = loadSavedData();
   if(saved) {
     DATA = saved;
@@ -1792,6 +2064,7 @@ function openStarEditor(id, td, e) {
 function closeAll() {
   commitEdit();
   document.getElementById('dd-overlay').style.display='none';
+  closeSgDd();
 }
 
 document.addEventListener('click',function(e){
