@@ -1,7 +1,5 @@
-const CACHE = 'grand-library-v2';
+const CACHE = 'grand-library-v3';
 const ASSETS = [
-  './',
-  './index.html',
   './manifest.webmanifest',
   './firebase-config.js',
   './icons/icon-192.png',
@@ -29,6 +27,25 @@ self.addEventListener('activate', function (e) {
 
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  var url = new URL(e.request.url);
+  var isAppShell = url.pathname.endsWith('/') ||
+    url.pathname.endsWith('/index.html') ||
+    url.pathname.endsWith('/grand-library/') ||
+    url.pathname.endsWith('/grand-library');
+
+  if (isAppShell) {
+    e.respondWith(
+      fetch(e.request).then(function (res) {
+        if (res && res.status === 200) {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (cache) { cache.put(e.request, copy); });
+        }
+        return res;
+      }).catch(function () { return caches.match(e.request); })
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(function (cached) {
       var fetched = fetch(e.request).then(function (res) {
