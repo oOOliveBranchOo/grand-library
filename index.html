@@ -605,6 +605,49 @@ tbody tr.bl-row td { opacity: .5; }
   font-size: 11px; color: #8A7A6A; text-align: right;
   padding: 0 14px 10px;
 }
+.discover-filters {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px;
+}
+.discover-filter-select {
+  background: #F5EFE6;
+  border: 1px solid #9AAAC0; border-bottom: 1.5px solid #5A8AA8;
+  color: #1A1C38; font-family: 'EB Garamond', serif; font-size: 13px;
+  padding: 5px 8px; border-radius: 2px; outline: none; cursor: pointer;
+}
+.discover-filter-select:focus { border-color: #D4A85C; }
+.discover-filter-clear {
+  padding: 5px 10px; border: 1px solid #9AAAC0; border-radius: 2px;
+  background: #EDE5D8; color: #5A4A3A;
+  font-family: 'Cormorant Garamond', serif; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+.discover-filter-clear:hover { background: #E0D4C8; }
+.discover-mature-cover {
+  width: 100%; height: 100%;
+  background: linear-gradient(145deg, #E8D4D8 0%, #EDE5D8 50%, #E8DCD0 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer; user-select: none;
+  border: none; padding: 0;
+}
+.discover-mature-cover:hover { background: linear-gradient(145deg, #E0C8CE 0%, #E8DDD0 100%); }
+.discover-mature-label {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; letter-spacing: 2px;
+  color: #A87888;
+}
+.discover-reveal-hint {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 12px; color: #8A7A6A;
+}
+.discover-card.mature-hidden .discover-card-tags { display: none; }
+.discover-card.mature-hidden .discover-btn[data-action="import"] { opacity: .45; pointer-events: none; }
+.discover-mature-notice {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 13px; color: #8A6878; margin-bottom: 12px;
+  background: #EDE5D8; border: 1px solid #D0C0B0;
+  padding: 10px 12px; border-radius: 2px;
+}
 .discover-detail-overlay {
   position: fixed; inset: 0; z-index: 600;
   background: rgba(26, 28, 56, .45);
@@ -761,6 +804,25 @@ tbody tr.bl-row td { opacity: .5; }
       <input class="discover-search" type="text" id="discover-search" placeholder="Search manga, manhwa, manhua…" autocomplete="off">
     </div>
     <div class="discover-hint">✦ Search by title — AniList first, then MangaUpdates, then MyAnimeList as fallback.</div>
+    <div class="discover-filters">
+      <span class="tb-label">Filter</span>
+      <select class="discover-filter-select" id="discover-filter-genre" onchange="applyDiscoverFilters()" title="Main genre">
+        <option value="">All Genres</option>
+        <option value="BL">BL</option>
+        <option value="STRAIGHT">Straight</option>
+        <option value="OTHER">Other</option>
+        <option value="YURI">Yuri</option>
+      </select>
+      <select class="discover-filter-select" id="discover-filter-subgenre" onchange="applyDiscoverFilters()" title="Sub-genre">
+        <option value="">All Sub-Genres</option>
+      </select>
+      <select class="discover-filter-select" id="discover-filter-status" onchange="applyDiscoverFilters()" title="Publication status">
+        <option value="">All Statuses</option>
+        <option value="COMPLETED">Complete</option>
+        <option value="ONGOING">Incomplete</option>
+      </select>
+      <button type="button" class="discover-filter-clear" onclick="clearDiscoverFilters()">Clear Filters</button>
+    </div>
   </div>
   <div class="discover-body" id="discover-body">
     <div class="discover-status" id="discover-status">Begin typing a title to search the archives…</div>
@@ -885,6 +947,9 @@ function statusLabel(statusVal) {
 }
 
 var DISCOVER_RESULTS = [];
+var DISCOVER_RAW_RESULTS = [];
+var DISCOVER_SOURCE_LABEL = '';
+var DISCOVER_REVEALED = {};
 var DISCOVER_TIMER = null;
 var DISCOVER_REQ_ID = 0;
 
@@ -932,7 +997,13 @@ function discoverStatusLabel(apiStatus, mapped) {
 
 function normalizeAnilistItem(m) {
   var title = (m.title && (m.title.english || m.title.romaji || m.title.native)) || 'Untitled';
-  var tags = (m.tags || []).filter(function(t){ return !t.isGeneralSpoiler; }).slice(0, 8).map(function(t){ return t.name; });
+  var rawTags = (m.tags || []).filter(function(t){ return !t.isGeneralSpoiler; });
+  var allTags = rawTags.map(function(t){ return t.name; });
+  var tags = allTags.slice(0, 8);
+  var hasAdultTag = rawTags.some(function(t){ return t.isAdult; });
+  var hasSexualContent = rawTags.some(function(t){
+    return (t.category || '').toLowerCase().indexOf('sexual content') !== -1;
+  });
   var genres = m.genres || [];
   var status = mapAnilistStatus(m.status);
   var chapters = m.chapters ? String(m.chapters) : '';
@@ -944,6 +1015,10 @@ function normalizeAnilistItem(m) {
     cover: m.coverImage && (m.coverImage.large || m.coverImage.medium) || '',
     genres: genres,
     tags: tags,
+    allTags: allTags,
+    isAdult: !!m.isAdult,
+    hasAdultTag: hasAdultTag,
+    hasSexualContent: hasSexualContent,
     apiStatus: m.status || '',
     status: status,
     statusLabel: discoverStatusLabel(m.status, status),
@@ -954,8 +1029,9 @@ function normalizeAnilistItem(m) {
 
 function normalizeJikanItem(m) {
   var title = m.title || (m.titles && m.titles[0] && m.titles[0].title) || 'Untitled';
-  var tags = (m.genres || []).map(function(g){ return g.name; });
+  var genreNames = (m.genres || []).map(function(g){ return g.name; });
   var themes = (m.themes || []).map(function(t){ return t.name; });
+  var explicitGenres = (m.explicit_genres || []).map(function(g){ return g.name; });
   var status = mapJikanStatus(m.status);
   var chapters = m.chapters ? String(m.chapters) : '';
   var desc = (m.synopsis || '').replace(/<[^>]+>/g, '').trim();
@@ -964,8 +1040,12 @@ function normalizeJikanItem(m) {
     source: 'MyAnimeList',
     title: title,
     cover: m.images && m.images.jpg && (m.images.jpg.large_image_url || m.images.jpg.image_url) || '',
-    genres: tags,
+    genres: genreNames,
     tags: themes.slice(0, 8),
+    allTags: themes.concat(explicitGenres),
+    isAdult: false,
+    rating: m.rating || '',
+    explicitGenres: explicitGenres,
     apiStatus: m.status || '',
     status: status,
     statusLabel: discoverStatusLabel(m.status, status),
@@ -997,7 +1077,7 @@ function searchMangaUpdates(q) {
 }
 
 function searchAnilist(q) {
-  var query = 'query($search:String){Page(page:1,perPage:20){media(search:$search,type:MANGA,sort:SEARCH_MATCH){id title{romaji english native}coverImage{medium large}status genres tags{name isGeneralSpoiler}chapters description(asHtml:false)}}}';
+  var query = 'query($search:String){Page(page:1,perPage:25){media(search:$search,type:MANGA,sort:SEARCH_MATCH){id title{romaji english native}coverImage{medium large}status isAdult genres tags{name isAdult isGeneralSpoiler category}chapters description(asHtml:false)}}}';
   return fetch('https://graphql.anilist.co', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1027,6 +1107,7 @@ function searchJikan(q) {
 
 function runDiscoverSearch(q) {
   var reqId = ++DISCOVER_REQ_ID;
+  DISCOVER_REVEALED = {};
   setDiscoverStatus('Searching the archives…', false);
   document.getElementById('discover-grid').style.display = 'none';
   document.getElementById('discover-source').textContent = '';
@@ -1034,18 +1115,18 @@ function runDiscoverSearch(q) {
   searchAnilist(q).then(function(results) {
     if (reqId !== DISCOVER_REQ_ID) return;
     if (results.length) {
-      renderDiscoverResults(results, 'AniList');
+      setDiscoverRawResults(results, 'AniList');
       return;
     }
     return searchMangaUpdates(q).then(function(muResults) {
       if (reqId !== DISCOVER_REQ_ID) return;
       if (muResults.length) {
-        renderDiscoverResults(muResults, 'MangaUpdates');
+        setDiscoverRawResults(muResults, 'MangaUpdates');
         return;
       }
       return searchJikan(q).then(function(fallback) {
         if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
         else setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
       });
     });
@@ -1054,25 +1135,121 @@ function runDiscoverSearch(q) {
     searchMangaUpdates(q).then(function(muResults) {
       if (reqId !== DISCOVER_REQ_ID) return;
       if (muResults.length) {
-        renderDiscoverResults(muResults, 'MangaUpdates');
+        setDiscoverRawResults(muResults, 'MangaUpdates');
         return;
       }
       return searchJikan(q).then(function(fallback) {
         if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
         else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
       });
     }).catch(function() {
       if (reqId !== DISCOVER_REQ_ID) return;
       searchJikan(q).then(function(fallback) {
         if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
         else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
       }).catch(function() {
         if (reqId !== DISCOVER_REQ_ID) return;
         setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
       });
     });
+  });
+}
+
+function discoverResultKey(r) {
+  return (r.source || '') + '::' + (r.title || '');
+}
+
+var MATURE_GENRE_NAMES = { 'hentai': 1, 'erotica': 1 };
+
+function isDiscoverMature(r) {
+  if (r.isAdult) return true;
+  if (r.hasAdultTag) return true;
+  if (r.hasSexualContent) return true;
+  var rt = (r.rating || '').toLowerCase();
+  if (/rx|hentai|r18|r\+|explicit|mature/.test(rt)) return true;
+  if (r.explicitGenres && r.explicitGenres.length) return true;
+  var i, n;
+  for (i = 0; i < (r.genres || []).length; i++) {
+    n = normalizeTag(r.genres[i]);
+    if (MATURE_GENRE_NAMES[n]) return true;
+  }
+  var names = (r.genres || []).concat(r.allTags || r.tags || []);
+  for (i = 0; i < names.length; i++) {
+    n = normalizeTag(names[i]);
+    if (MATURE_GENRE_NAMES[n]) return true;
+    if (n === 'nudity') return true;
+  }
+  return false;
+}
+
+function isDiscoverRevealed(r) {
+  return !!DISCOVER_REVEALED[discoverResultKey(r)];
+}
+
+function revealDiscoverResult(r) {
+  DISCOVER_REVEALED[discoverResultKey(r)] = true;
+  applyDiscoverFilters();
+}
+
+function getDiscoverFilters() {
+  return {
+    genre: document.getElementById('discover-filter-genre').value,
+    subgenre: document.getElementById('discover-filter-subgenre').value,
+    status: document.getElementById('discover-filter-status').value
+  };
+}
+
+function discoverResultMatchesFilters(r, filters) {
+  if (filters.status === 'COMPLETED' && r.status !== 'COMPLETED') return false;
+  if (filters.status === 'ONGOING' && r.status !== 'ONGOING') return false;
+  var tagSource = r.allTags || r.tags || [];
+  var mapped = mapDiscoverTags(r.genres, tagSource);
+  if (filters.genre && mapped.genre !== filters.genre) return false;
+  if (filters.subgenre && mapped.subgenres.indexOf(filters.subgenre) === -1) return false;
+  return true;
+}
+
+function setDiscoverRawResults(results, sourceLabel) {
+  DISCOVER_RAW_RESULTS = results;
+  DISCOVER_SOURCE_LABEL = sourceLabel;
+  applyDiscoverFilters();
+}
+
+function applyDiscoverFilters() {
+  if (!DISCOVER_RAW_RESULTS.length) return;
+  var filters = getDiscoverFilters();
+  var filtered = DISCOVER_RAW_RESULTS.filter(function(r) {
+    return discoverResultMatchesFilters(r, filters);
+  });
+  renderDiscoverResults(filtered, DISCOVER_SOURCE_LABEL, DISCOVER_RAW_RESULTS.length);
+}
+
+function clearDiscoverFilters() {
+  document.getElementById('discover-filter-genre').value = '';
+  document.getElementById('discover-filter-subgenre').value = '';
+  document.getElementById('discover-filter-status').value = '';
+  applyDiscoverFilters();
+}
+
+function rebuildDiscoverSubgenreFilter() {
+  var sel = document.getElementById('discover-filter-subgenre');
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">All Sub-Genres</option>';
+  Object.entries(SUBGENRES).forEach(function(entry) {
+    var group = entry[0], items = entry[1];
+    var og = document.createElement('optgroup');
+    og.label = group;
+    items.forEach(function(tag) {
+      var o = document.createElement('option');
+      o.value = tag;
+      o.textContent = tag;
+      if (tag === current) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
   });
 }
 
@@ -1084,22 +1261,50 @@ function setDiscoverStatus(msg, isErr) {
   document.getElementById('discover-grid').style.display = 'none';
 }
 
-function renderDiscoverResults(results, sourceLabel) {
+function renderDiscoverResults(results, sourceLabel, totalCount) {
   DISCOVER_RESULTS = results;
   var grid = document.getElementById('discover-grid');
   var status = document.getElementById('discover-status');
+  if (!results.length) {
+    status.style.display = 'block';
+    status.style.color = '#8A7A6A';
+    status.textContent = totalCount
+      ? 'No results match your filters. Try clearing filters or broadening your search.'
+      : 'No volumes found.';
+    grid.style.display = 'none';
+    document.getElementById('discover-source').textContent = totalCount
+      ? '0 of ' + totalCount + ' result(s) via ' + sourceLabel
+      : '';
+    return;
+  }
   status.style.display = 'none';
   grid.style.display = 'grid';
   grid.innerHTML = '';
-  document.getElementById('discover-source').textContent = results.length + ' result(s) via ' + sourceLabel;
+  var countMsg = results.length + ' result(s) via ' + sourceLabel;
+  if (totalCount && totalCount !== results.length) {
+    countMsg = results.length + ' of ' + totalCount + ' result(s) via ' + sourceLabel;
+  }
+  document.getElementById('discover-source').textContent = countMsg;
 
   results.forEach(function(r, idx) {
+    var mature = isDiscoverMature(r);
+    var revealed = !mature || isDiscoverRevealed(r);
     var card = document.createElement('div');
-    card.className = 'discover-card';
-    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; }).slice(0, 6);
-    var coverHtml = r.cover
-      ? '<img src="' + escHtml(r.cover) + '" alt="" loading="lazy">'
-      : '<span class="no-cover">No cover on file</span>';
+    card.className = 'discover-card' + (mature && !revealed ? ' mature-hidden' : '');
+
+    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; }).slice(0, 6);
+    var coverHtml;
+    if (mature && !revealed) {
+      coverHtml = '<button type="button" class="discover-mature-cover" data-reveal-idx="' + idx + '" aria-label="Reveal mature content">'
+        + '<span class="discover-mature-label">18+</span>'
+        + '<span class="discover-reveal-hint">Click to reveal</span>'
+        + '</button>';
+    } else if (r.cover) {
+      coverHtml = '<img src="' + escHtml(r.cover) + '" alt="" loading="lazy">';
+    } else {
+      coverHtml = '<span class="no-cover">No cover on file</span>';
+    }
+
     card.innerHTML =
       '<div class="discover-card-cover">' + coverHtml + '</div>'
       + '<div class="discover-card-body">'
@@ -1116,11 +1321,26 @@ function renderDiscoverResults(results, sourceLabel) {
     grid.appendChild(card);
   });
 
+  grid.querySelectorAll('.discover-mature-cover').forEach(function(btn) {
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      var idx = parseInt(btn.getAttribute('data-reveal-idx'), 10);
+      var r = DISCOVER_RESULTS[idx];
+      if (r) revealDiscoverResult(r);
+    });
+  });
+
   grid.querySelectorAll('[data-action]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var idx = parseInt(btn.getAttribute('data-idx'), 10);
-      if (btn.getAttribute('data-action') === 'view') openDiscoverDetail(idx);
-      else importDiscoverResult(idx);
+      var r = DISCOVER_RESULTS[idx];
+      if (!r) return;
+      if (btn.getAttribute('data-action') === 'view') {
+        openDiscoverDetail(idx);
+        return;
+      }
+      if (isDiscoverMature(r) && !isDiscoverRevealed(r)) return;
+      importDiscoverResult(idx);
     });
   });
 }
@@ -1128,21 +1348,41 @@ function renderDiscoverResults(results, sourceLabel) {
 function openDiscoverDetail(idx) {
   var r = DISCOVER_RESULTS[idx];
   if (!r) return;
+  var mature = isDiscoverMature(r);
+  var revealed = !mature || isDiscoverRevealed(r);
   document.getElementById('discover-detail-title').textContent = r.title;
-  var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; });
-  document.getElementById('discover-detail-body').innerHTML =
-    '<div class="discover-detail-note">Review these details, then add the volume manually in your library — or use ✦ Import on the card.</div>'
+  var allTags = r.genres.concat(r.allTags || r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; });
+  var html = '';
+  if (mature && !revealed) {
+    html += '<div class="discover-mature-notice">18+ — Mature content hidden. Click to reveal cover, tags, and summary.</div>'
+      + '<div class="sync-actions" style="margin-bottom:14px">'
+      + '<button type="button" class="sync-btn" id="discover-detail-reveal">Click to Reveal</button>'
+      + '</div>';
+  }
+  html += '<div class="discover-detail-note">Review these details, then add the volume manually in your library — or use ✦ Import on the card.</div>'
     + '<div class="discover-detail-row"><strong>Title</strong>' + escHtml(r.title) + '</div>'
     + '<div class="discover-detail-row"><strong>Status</strong>' + escHtml(r.statusLabel) + '</div>'
-    + '<div class="discover-detail-row"><strong>Chapters</strong>' + escHtml(r.chapters || '—') + '</div>'
-    + '<div class="discover-detail-row"><strong>Genres & Tags</strong>' + escHtml(allTags.join(', ') || '—') + '</div>'
-    + (r.comment ? '<div class="discover-detail-row"><strong>Summary</strong>' + escHtml(r.comment) + '</div>' : '')
-    + '<div class="discover-detail-row"><strong>Source</strong>' + escHtml(r.source) + '</div>'
+    + '<div class="discover-detail-row"><strong>Chapters</strong>' + escHtml(r.chapters || '—') + '</div>';
+  if (revealed) {
+    html += '<div class="discover-detail-row"><strong>Genres & Tags</strong>' + escHtml(allTags.join(', ') || '—') + '</div>'
+      + (r.comment ? '<div class="discover-detail-row"><strong>Summary</strong>' + escHtml(r.comment) + '</div>' : '');
+  }
+  html += '<div class="discover-detail-row"><strong>Source</strong>' + escHtml(r.source) + '</div>'
     + (r.muUrl ? '<div class="discover-detail-row"><strong>MangaUpdates</strong><a href="' + escHtml(r.muUrl) + '" target="_blank" rel="noopener">' + escHtml(r.muUrl) + '</a></div>' : '')
-    + '<div class="sync-actions" style="margin-top:14px">'
-    + '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>'
-    + '<button class="sync-btn sync-btn-ghost" onclick="closeDiscoverDetail()">Close</button>'
+    + '<div class="sync-actions" style="margin-top:14px">';
+  if (revealed) {
+    html += '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>';
+  }
+  html += '<button class="sync-btn sync-btn-ghost" onclick="closeDiscoverDetail()">Close</button>'
     + '</div>';
+  document.getElementById('discover-detail-body').innerHTML = html;
+  var revealBtn = document.getElementById('discover-detail-reveal');
+  if (revealBtn) {
+    revealBtn.addEventListener('click', function() {
+      revealDiscoverResult(r);
+      openDiscoverDetail(idx);
+    });
+  }
   document.getElementById('discover-detail-overlay').classList.add('open');
 }
 
@@ -1155,7 +1395,7 @@ function importDiscoverResult(idx) {
   if (!r) return;
   var dup = DATA.some(function(b){ return b.title.toLowerCase() === r.title.toLowerCase(); });
   if (dup && !confirm('“' + r.title + '” may already be in your library. Import anyway?')) return;
-  var mapped = mapDiscoverTags(r.genres, r.tags);
+  var mapped = mapDiscoverTags(r.genres, r.allTags || r.tags);
   if (mapped.unknownTags.length) {
     showNewTagApproval(mapped, r);
   } else {
@@ -1241,8 +1481,11 @@ function onDiscoverSearchInput() {
   if (q.length < 2) {
     DISCOVER_REQ_ID++;
     DISCOVER_RESULTS = [];
+    DISCOVER_RAW_RESULTS = [];
+    DISCOVER_REVEALED = {};
     setDiscoverStatus('Begin typing a title to search the archives…', false);
     document.getElementById('discover-source').textContent = '';
+    document.getElementById('discover-grid').style.display = 'none';
     return;
   }
   DISCOVER_TIMER = setTimeout(function(){ runDiscoverSearch(q); }, 500);
@@ -1316,6 +1559,7 @@ function loadCustomSubgenres() {
   } catch (e) {}
   refreshAllSubgenres();
   rebuildSubgenreFilterSelect();
+  rebuildDiscoverSubgenreFilter();
 }
 
 function saveCustomSubgenres() {
@@ -1341,6 +1585,7 @@ function addCustomSubgenre(group, tag) {
     refreshAllSubgenres();
     saveCustomSubgenres();
     rebuildSubgenreFilterSelect();
+    rebuildDiscoverSubgenreFilter();
     toast('✦ “' + tag + '” added to ' + group + '.', 'ok');
   }
 }
