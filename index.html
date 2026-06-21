@@ -336,10 +336,11 @@ td.editing input {
   transition: all .2s; white-space: nowrap;
   position: relative; top: 2px;
 }
-.tab-btn:hover:not(.active-completed):not(.active-ongoing):not(.active-unknown) { color: #C8DCE8; }
+.tab-btn:hover:not(.active-completed):not(.active-ongoing):not(.active-unknown):not(.active-discover) { color: #C8DCE8; }
 .tab-btn.active-completed { color: #3C1838; background: #D4B8CC; border-bottom-color: #A888A0; border-radius: 3px 3px 0 0; }
 .tab-btn.active-ongoing   { color: #6A1020; background: #E8C0C4; border-bottom-color: #C09098; border-radius: 3px 3px 0 0; }
 .tab-btn.active-unknown   { color: #1A1C38; background: #C8CADE; border-bottom-color: #9A9CB8; border-radius: 3px 3px 0 0; }
+.tab-btn.active-discover  { color: #6A4808; background: #F0DCA8; border-bottom-color: #C0A860; border-radius: 3px 3px 0 0; }
 .tab-btn.active-favourites { color: #6A1020; background: #F5D0D8; border-bottom-color: #E89098; border-radius: 3px 3px 0 0; }
 .tab-btn.active-blacklist  { color: #F5EFE6; background: #3A1E2E; border-bottom-color: #1A0C1A; border-radius: 3px 3px 0 0; }
 .tab-count {
@@ -507,6 +508,142 @@ tbody tr.bl-row td { opacity: .5; }
   background: #F5EFE6; padding: 1px 4px;
 }
 
+/* ── DISCOVER ── */
+.discover-wrap {
+  flex: 1; overflow: auto; display: none;
+  flex-direction: column; background: var(--bg);
+}
+.discover-wrap.active { display: flex; }
+.discover-toolbar {
+  background: #C8CADE;
+  border-bottom: 1px solid #9A9CB8;
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+.discover-search-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.discover-search {
+  flex: 1; min-width: 200px;
+  background: #F5EFE6;
+  border: 1px solid #9AAAC0;
+  border-bottom: 1.5px solid #5A8AA8;
+  color: #1A1C38;
+  font-family: 'EB Garamond', serif; font-size: 15px;
+  padding: 7px 12px; border-radius: 2px; outline: none;
+}
+.discover-search:focus { border-color: #D4A85C; }
+.discover-hint {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 13px; color: #5A4A3A; margin-top: 8px;
+}
+.discover-body { flex: 1; overflow: auto; padding: 14px; }
+.discover-status {
+  text-align: center; padding: 40px 20px;
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 15px; color: #8A7A6A;
+}
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.discover-card {
+  background: #F5EFE6;
+  border: 1px solid #C8B8A8;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 2px 10px rgba(30,20,10,.08);
+}
+.discover-card-cover {
+  height: 160px; background: #EDE5D8;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border-bottom: 1px solid #D0C0B0;
+}
+.discover-card-cover img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.discover-card-cover .no-cover {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13px; color: #8A7A6A; font-style: italic;
+}
+.discover-card-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.discover-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px; font-weight: 600; color: #3C1838;
+  line-height: 1.35;
+}
+.discover-card-meta {
+  font-family: 'EB Garamond', serif; font-size: 13px; color: #5A4A3A;
+}
+.discover-card-tags {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.discover-tag {
+  font-family: 'Cormorant Garamond', serif; font-size: 9px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .3px;
+  padding: 2px 6px; border-radius: 1px;
+  background: #C8CADE; border: 1px solid #9A9CB8; color: #1A1C38;
+}
+.discover-card-actions {
+  display: flex; gap: 8px; margin-top: auto; padding-top: 4px;
+}
+.discover-btn {
+  flex: 1; padding: 6px 10px; border-radius: 2px; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 12px; font-weight: 600;
+  border: 1px solid #C0A860; background: #F0DCA8; color: #6A4808;
+  white-space: nowrap;
+}
+.discover-btn:hover { background: #D4C080; }
+.discover-btn-silver {
+  border-color: #7AAAC0; background: #C8DCE8; color: #1A3848;
+}
+.discover-btn-silver:hover { background: #A8C8D8; }
+.discover-source {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 11px; color: #8A7A6A; text-align: right;
+  padding: 0 14px 10px;
+}
+.discover-detail-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(26, 28, 56, .45);
+  display: none; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.discover-detail-overlay.open { display: flex; }
+.discover-detail {
+  background: #F5EFE6;
+  border: 1px solid #8A7A6A;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(30,20,10,.35);
+  width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+}
+.discover-detail-head {
+  background: #E8C0C4;
+  border-bottom: 1px solid #C09098;
+  padding: 14px 18px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 600; color: #6A1020;
+}
+.discover-detail-body { padding: 16px 18px 18px; }
+.discover-detail-row {
+  margin-bottom: 10px;
+  font-family: 'EB Garamond', serif; font-size: 14px; color: #3C1838;
+  line-height: 1.45;
+}
+.discover-detail-row strong {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: #8A7A6A; display: block; margin-bottom: 2px;
+}
+.discover-detail-note {
+  font-family: 'EB Garamond', serif; font-style: italic;
+  font-size: 13px; color: #5A4A3A; margin-bottom: 14px;
+}
+
 </style>
 </head>
 <body>
@@ -523,11 +660,12 @@ tbody tr.bl-row td { opacity: .5; }
   <button class="tab-btn" id="tab-completed" onclick="switchTab('completed')">✦ Completed <span class="tab-count" id="tc-completed"></span></button>
   <button class="tab-btn" id="tab-ongoing"   onclick="switchTab('ongoing')">✦ Ongoing <span class="tab-count" id="tc-ongoing"></span></button>
   <button class="tab-btn" id="tab-unknown"   onclick="switchTab('unknown')">✦ Queue <span class="tab-count" id="tc-unknown"></span></button>
+  <button class="tab-btn" id="tab-discover"  onclick="switchTab('discover')">✧ Discover</button>
   <button class="tab-btn" id="tab-favourites" onclick="switchTab('favourites')">❤ Favourites <span class="tab-count" id="tc-favourites"></span></button>
   <button class="tab-btn" id="tab-blacklist"  onclick="switchTab('blacklist')">💀 Blacklist <span class="tab-count" id="tc-blacklist"></span></button>
 </div>
 
-<div class="toolbar">
+<div class="toolbar" id="library-toolbar">
   <span class="tb-label">Filter</span>
   <input class="tb-search" type="text" id="search" placeholder="Search titles or comments…" oninput="applyFilters()">
   <select class="tb-select" id="filter-genre" onchange="applyFilters()">
@@ -592,6 +730,28 @@ tbody tr.bl-row td { opacity: .5; }
     <tbody id="tbody"></tbody>
   </table>
   <button class="add-row-btn" onclick="addRow()">＋   Add a new volume to the library</button>
+</div>
+
+<div class="discover-wrap" id="discover-wrap">
+  <div class="discover-toolbar">
+    <div class="discover-search-row">
+      <span class="tb-label">Discover</span>
+      <input class="discover-search" type="text" id="discover-search" placeholder="Search manga, manhwa, manhua…" autocomplete="off">
+    </div>
+    <div class="discover-hint">✦ Search by title — results from AniList, with MyAnimeList as fallback.</div>
+  </div>
+  <div class="discover-body" id="discover-body">
+    <div class="discover-status" id="discover-status">Begin typing a title to search the archives…</div>
+    <div class="discover-grid" id="discover-grid" style="display:none"></div>
+  </div>
+  <div class="discover-source" id="discover-source"></div>
+</div>
+
+<div id="discover-detail-overlay" class="discover-detail-overlay" onclick="if(event.target===this)closeDiscoverDetail()">
+  <div class="discover-detail">
+    <div class="discover-detail-head" id="discover-detail-title">Volume Details</div>
+    <div class="discover-detail-body" id="discover-detail-body"></div>
+  </div>
 </div>
 
 <div class="footer">
@@ -693,6 +853,264 @@ function statusLabel(statusVal) {
   if (statusVal === 'COMPLETED') return 'Completed';
   if (statusVal === 'ONGOING') return 'Ongoing';
   return 'Queue';
+}
+
+var DISCOVER_RESULTS = [];
+var DISCOVER_TIMER = null;
+var DISCOVER_REQ_ID = 0;
+
+function addBookEntry(fields) {
+  closeAll();
+  var newId = DATA.length ? Math.max.apply(null, DATA.map(function(b){ return b.id; })) + 1 : 1;
+  var status = fields.status || '';
+  var book = {
+    id: newId,
+    genre: fields.genre || '',
+    title: fields.title || 'New Volume',
+    status: status,
+    chapter: fields.chapter || '',
+    rating: fields.rating !== undefined && fields.rating !== null ? fields.rating : null,
+    comment: fields.comment || '',
+    subgenres: fields.subgenres || [],
+    _section: sectionOf({ status: status, blacklist: false })
+  };
+  if (fields.favourite) book.favourite = true;
+  DATA.push(book);
+  persist();
+  if (ACTIVE_TAB !== 'discover') applyFilters();
+  else updateStats();
+  return book;
+}
+
+function mapAnilistStatus(s) {
+  if (s === 'FINISHED') return 'COMPLETED';
+  if (s === 'RELEASING') return 'ONGOING';
+  return '';
+}
+
+function mapJikanStatus(s) {
+  if (s === 'Finished') return 'COMPLETED';
+  if (s === 'Publishing') return 'ONGOING';
+  return '';
+}
+
+function discoverStatusLabel(apiStatus, mapped) {
+  if (mapped === 'COMPLETED') return 'Completed';
+  if (mapped === 'ONGOING') return 'Ongoing';
+  if (apiStatus) return apiStatus.replace(/_/g, ' ').toLowerCase();
+  return 'Unknown';
+}
+
+function normalizeAnilistItem(m) {
+  var title = (m.title && (m.title.english || m.title.romaji || m.title.native)) || 'Untitled';
+  var tags = (m.tags || []).filter(function(t){ return !t.isGeneralSpoiler; }).slice(0, 8).map(function(t){ return t.name; });
+  var genres = m.genres || [];
+  var status = mapAnilistStatus(m.status);
+  var chapters = m.chapters ? String(m.chapters) : '';
+  var desc = (m.description || '').replace(/<[^>]+>/g, '').trim();
+  if (desc.length > 280) desc = desc.slice(0, 277) + '…';
+  return {
+    source: 'AniList',
+    title: title,
+    cover: m.coverImage && (m.coverImage.large || m.coverImage.medium) || '',
+    genres: genres,
+    tags: tags,
+    apiStatus: m.status || '',
+    status: status,
+    statusLabel: discoverStatusLabel(m.status, status),
+    chapters: chapters,
+    comment: desc
+  };
+}
+
+function normalizeJikanItem(m) {
+  var title = m.title || (m.titles && m.titles[0] && m.titles[0].title) || 'Untitled';
+  var tags = (m.genres || []).map(function(g){ return g.name; });
+  var themes = (m.themes || []).map(function(t){ return t.name; });
+  var status = mapJikanStatus(m.status);
+  var chapters = m.chapters ? String(m.chapters) : '';
+  var desc = (m.synopsis || '').replace(/<[^>]+>/g, '').trim();
+  if (desc.length > 280) desc = desc.slice(0, 277) + '…';
+  return {
+    source: 'MyAnimeList',
+    title: title,
+    cover: m.images && m.images.jpg && (m.images.jpg.large_image_url || m.images.jpg.image_url) || '',
+    genres: tags,
+    tags: themes.slice(0, 8),
+    apiStatus: m.status || '',
+    status: status,
+    statusLabel: discoverStatusLabel(m.status, status),
+    chapters: chapters,
+    comment: desc
+  };
+}
+
+function searchAnilist(q) {
+  var query = 'query($search:String){Page(page:1,perPage:20){media(search:$search,type:MANGA,sort:SEARCH_MATCH){id title{romaji english native}coverImage{medium large}status genres tags{name isGeneralSpoiler}chapters description(asHtml:false)}}}';
+  return fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ query: query, variables: { search: q } })
+  }).then(function(r) {
+    if (!r.ok) throw new Error('AniList unavailable');
+    return r.json();
+  }).then(function(json) {
+    if (json.errors) throw new Error(json.errors[0].message || 'AniList error');
+    var media = json.data && json.data.Page && json.data.Page.media;
+    if (!media || !media.length) return [];
+    return media.map(normalizeAnilistItem);
+  });
+}
+
+function searchJikan(q) {
+  return fetch('https://api.jikan.moe/v4/manga?q=' + encodeURIComponent(q) + '&limit=20')
+    .then(function(r) {
+      if (!r.ok) throw new Error('Jikan unavailable');
+      return r.json();
+    }).then(function(json) {
+      var data = json.data;
+      if (!data || !data.length) return [];
+      return data.map(normalizeJikanItem);
+    });
+}
+
+function runDiscoverSearch(q) {
+  var reqId = ++DISCOVER_REQ_ID;
+  setDiscoverStatus('Searching the archives…', false);
+  document.getElementById('discover-grid').style.display = 'none';
+  document.getElementById('discover-source').textContent = '';
+
+  searchAnilist(q).then(function(results) {
+    if (reqId !== DISCOVER_REQ_ID) return;
+    if (results.length) {
+      renderDiscoverResults(results, 'AniList');
+      return;
+    }
+    return searchJikan(q).then(function(fallback) {
+      if (reqId !== DISCOVER_REQ_ID) return;
+      if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+      else setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
+    });
+  }).catch(function() {
+    if (reqId !== DISCOVER_REQ_ID) return;
+    searchJikan(q).then(function(fallback) {
+      if (reqId !== DISCOVER_REQ_ID) return;
+      if (fallback.length) renderDiscoverResults(fallback, 'MyAnimeList (fallback)');
+      else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+    }).catch(function() {
+      if (reqId !== DISCOVER_REQ_ID) return;
+      setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+    });
+  });
+}
+
+function setDiscoverStatus(msg, isErr) {
+  var el = document.getElementById('discover-status');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.color = isErr ? '#6A1020' : '#8A7A6A';
+  document.getElementById('discover-grid').style.display = 'none';
+}
+
+function renderDiscoverResults(results, sourceLabel) {
+  DISCOVER_RESULTS = results;
+  var grid = document.getElementById('discover-grid');
+  var status = document.getElementById('discover-status');
+  status.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  document.getElementById('discover-source').textContent = results.length + ' result(s) via ' + sourceLabel;
+
+  results.forEach(function(r, idx) {
+    var card = document.createElement('div');
+    card.className = 'discover-card';
+    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; }).slice(0, 6);
+    var coverHtml = r.cover
+      ? '<img src="' + escHtml(r.cover) + '" alt="" loading="lazy">'
+      : '<span class="no-cover">No cover on file</span>';
+    card.innerHTML =
+      '<div class="discover-card-cover">' + coverHtml + '</div>'
+      + '<div class="discover-card-body">'
+      + '<div class="discover-card-title">' + escHtml(r.title) + '</div>'
+      + '<div class="discover-card-meta">' + escHtml(r.statusLabel)
+      + (r.chapters ? ' · ' + escHtml(r.chapters) + ' ch' : '') + '</div>'
+      + '<div class="discover-card-tags">' + allTags.map(function(t){
+          return '<span class="discover-tag">' + escHtml(t) + '</span>';
+        }).join('') + '</div>'
+      + '<div class="discover-card-actions">'
+      + '<button class="discover-btn discover-btn-silver" data-action="view" data-idx="' + idx + '">View Details</button>'
+      + '<button class="discover-btn" data-action="import" data-idx="' + idx + '">✦ Import</button>'
+      + '</div></div>';
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll('[data-action]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(btn.getAttribute('data-idx'), 10);
+      if (btn.getAttribute('data-action') === 'view') openDiscoverDetail(idx);
+      else importDiscoverResult(idx);
+    });
+  });
+}
+
+function openDiscoverDetail(idx) {
+  var r = DISCOVER_RESULTS[idx];
+  if (!r) return;
+  document.getElementById('discover-detail-title').textContent = r.title;
+  var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; });
+  document.getElementById('discover-detail-body').innerHTML =
+    '<div class="discover-detail-note">Review these details, then add the volume manually in your library — or use ✦ Import on the card.</div>'
+    + '<div class="discover-detail-row"><strong>Title</strong>' + escHtml(r.title) + '</div>'
+    + '<div class="discover-detail-row"><strong>Status</strong>' + escHtml(r.statusLabel) + '</div>'
+    + '<div class="discover-detail-row"><strong>Chapters</strong>' + escHtml(r.chapters || '—') + '</div>'
+    + '<div class="discover-detail-row"><strong>Genres & Tags</strong>' + escHtml(allTags.join(', ') || '—') + '</div>'
+    + (r.comment ? '<div class="discover-detail-row"><strong>Summary</strong>' + escHtml(r.comment) + '</div>' : '')
+    + '<div class="discover-detail-row"><strong>Source</strong>' + escHtml(r.source) + '</div>'
+    + '<div class="sync-actions" style="margin-top:14px">'
+    + '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>'
+    + '<button class="sync-btn sync-btn-ghost" onclick="closeDiscoverDetail()">Close</button>'
+    + '</div>';
+  document.getElementById('discover-detail-overlay').classList.add('open');
+}
+
+function closeDiscoverDetail() {
+  document.getElementById('discover-detail-overlay').classList.remove('open');
+}
+
+function importDiscoverResult(idx) {
+  var r = DISCOVER_RESULTS[idx];
+  if (!r) return;
+  var dup = DATA.some(function(b){ return b.title.toLowerCase() === r.title.toLowerCase(); });
+  if (dup && !confirm('“' + r.title + '” may already be in your library. Import anyway?')) return;
+  var rawTags = r.genres.concat(r.tags).filter(function(t, i, a){ return a.indexOf(t) === i; });
+  var book = addBookEntry({
+    title: r.title,
+    status: r.status,
+    chapter: r.chapters,
+    comment: r.comment,
+    subgenres: rawTags
+  });
+  toast('✦ “' + book.title + '” added to ' + sectionLabel(sectionOf(book)) + '.', 'ok');
+}
+
+function onDiscoverSearchInput() {
+  clearTimeout(DISCOVER_TIMER);
+  var q = (document.getElementById('discover-search').value || '').trim();
+  if (q.length < 2) {
+    DISCOVER_REQ_ID++;
+    DISCOVER_RESULTS = [];
+    setDiscoverStatus('Begin typing a title to search the archives…', false);
+    document.getElementById('discover-source').textContent = '';
+    return;
+  }
+  DISCOVER_TIMER = setTimeout(function(){ runDiscoverSearch(q); }, 500);
+}
+
+function updateLibraryVisibility() {
+  var isDiscover = ACTIVE_TAB === 'discover';
+  document.getElementById('library-toolbar').style.display = isDiscover ? 'none' : 'flex';
+  document.getElementById('grid-wrap').style.display = isDiscover ? 'none' : 'block';
+  document.getElementById('discover-wrap').classList.toggle('active', isDiscover);
 }
 
 
@@ -1073,6 +1491,10 @@ function ratingDisplay(r) {
 }
 
 function applyFilters() {
+  if (ACTIVE_TAB === 'discover') {
+    updateStats();
+    return;
+  }
   var q  = (document.getElementById('search').value||'').toLowerCase();
   var fg = document.getElementById('filter-genre').value;
   var fsg = document.getElementById('filter-subgenre').value;
@@ -1205,18 +1627,20 @@ function updateStats() {
   var comp  = DATA.filter(function(b){ return sectionOf(b)==='completed'; }).length;
   var ong   = DATA.filter(function(b){ return sectionOf(b)==='ongoing'; }).length;
   var unk   = DATA.filter(function(b){ return sectionOf(b)==='unknown'; }).length;
-  var show  = FILTERED.all.length;
+  var show  = ACTIVE_TAB === 'discover' ? 0 : FILTERED.all.length;
   document.getElementById('header-stats').textContent =
     total+' volumes · '+comp+' completed · '+ong+' ongoing · '+unk+' in queue';
   document.getElementById('footer-info').textContent =
-    show===total?show+' volumes':'Showing '+show+' of '+total;
+    ACTIVE_TAB === 'discover' ? 'Discover — search to add volumes' :
+    (show===total?show+' volumes':'Showing '+show+' of '+total);
   document.getElementById('tc-completed').textContent  = comp;
   document.getElementById('tc-ongoing').textContent    = ong;
   document.getElementById('tc-unknown').textContent    = unk;
   document.getElementById('tc-favourites').textContent = DATA.filter(function(b){ return b.favourite; }).length;
   document.getElementById('tc-blacklist').textContent  = DATA.filter(function(b){ return b.blacklist; }).length;
-  ['completed','ongoing','unknown','favourites','blacklist'].forEach(function(t){
-    document.getElementById('tab-'+t).className = 'tab-btn'+(t===ACTIVE_TAB?' active-'+t:'');
+  ['completed','ongoing','unknown','discover','favourites','blacklist'].forEach(function(t){
+    var el = document.getElementById('tab-'+t);
+    if (el) el.className = 'tab-btn'+(t===ACTIVE_TAB?' active-'+t:'');
   });
 }
 
@@ -1333,9 +1757,14 @@ document.addEventListener('click',function(e){
 
 function addRow() {
   closeAll();
-  var newId=DATA.length?Math.max.apply(null,DATA.map(function(b){return b.id;}))+1:1;
-  DATA.push({id:newId,genre:'',title:'New Volume',status:'',chapter:'',rating:null,comment:'',_section:'unknown'});
-  persist();
+  var book = addBookEntry({
+    genre: '',
+    title: 'New Volume',
+    status: '',
+    chapter: '',
+    rating: null,
+    comment: ''
+  });
   document.getElementById('search').value='';
   document.getElementById('filter-genre').value='';
   document.getElementById('filter-subgenre').value='';
@@ -1345,7 +1774,7 @@ function addRow() {
     wrap.scrollTop=wrap.scrollHeight;
     var rows=document.querySelectorAll('#tbody tr:not(.section-header)');
     var last=rows[rows.length-1];
-    if(last){ last.classList.add('selected'); startEdit(newId,'title',last.cells[2]); }
+    if(last){ last.classList.add('selected'); startEdit(book.id,'title',last.cells[2]); }
   },60);
   toast('✦ New volume added to Queue.','ok');
 }
@@ -1497,18 +1926,25 @@ switchTab('completed');
 
 function switchTab(tab) {
   ACTIVE_TAB = tab;
-  applyFilters();
-  document.getElementById('grid-wrap').scrollTop = 0;
+  updateLibraryVisibility();
+  if (tab !== 'discover') applyFilters();
+  else updateStats();
+  var scrollEl = tab === 'discover' ? document.getElementById('discover-wrap') : document.getElementById('grid-wrap');
+  if (scrollEl) scrollEl.scrollTop = 0;
 }
 
 var _origAddRow = addRow;
 addRow = function() {
   closeAll();
-  var newId = DATA.length ? Math.max.apply(null, DATA.map(function(b){return b.id;})) + 1 : 1;
   var statusMap = { completed: 'COMPLETED', ongoing: 'ONGOING', unknown: '', favourites: '', blacklist: '' };
-  DATA.push({id:newId, genre:'', title:'New Volume', status: statusMap[ACTIVE_TAB],
-             chapter:'', rating:null, comment:'', _section: ACTIVE_TAB});
-  persist();
+  var book = addBookEntry({
+    genre: '',
+    title: 'New Volume',
+    status: statusMap[ACTIVE_TAB] || '',
+    chapter: '',
+    rating: null,
+    comment: ''
+  });
   document.getElementById('search').value='';
   document.getElementById('filter-genre').value='';
   document.getElementById('filter-subgenre').value='';
@@ -1518,10 +1954,13 @@ addRow = function() {
     wrap.scrollTop = wrap.scrollHeight;
     var rows = document.querySelectorAll('#tbody tr');
     var last = rows[rows.length-1];
-    if(last){ last.classList.add('selected'); startEdit(newId,'title',last.cells[2]); }
+    if(last){ last.classList.add('selected'); startEdit(book.id,'title',last.cells[2]); }
   }, 60);
-  toast('New volume added to '+sectionLabel(ACTIVE_TAB)+'.','ok');
+  toast('New volume added to '+sectionLabel(sectionOf(book))+'.','ok');
 };
+
+document.getElementById('discover-search').addEventListener('input', onDiscoverSearchInput);
+updateLibraryVisibility();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
