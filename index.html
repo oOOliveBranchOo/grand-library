@@ -522,7 +522,7 @@ tbody tr.bl-row td { opacity: .5; }
 <div class="tabs-bar">
   <button class="tab-btn" id="tab-completed" onclick="switchTab('completed')">✦ Completed <span class="tab-count" id="tc-completed"></span></button>
   <button class="tab-btn" id="tab-ongoing"   onclick="switchTab('ongoing')">✦ Ongoing <span class="tab-count" id="tc-ongoing"></span></button>
-  <button class="tab-btn" id="tab-unknown"   onclick="switchTab('unknown')">✦ Unknown <span class="tab-count" id="tc-unknown"></span></button>
+  <button class="tab-btn" id="tab-unknown"   onclick="switchTab('unknown')">✦ Queue <span class="tab-count" id="tc-unknown"></span></button>
   <button class="tab-btn" id="tab-favourites" onclick="switchTab('favourites')">❤ Favourites <span class="tab-count" id="tc-favourites"></span></button>
   <button class="tab-btn" id="tab-blacklist"  onclick="switchTab('blacklist')">💀 Blacklist <span class="tab-count" id="tc-blacklist"></span></button>
 </div>
@@ -670,6 +670,30 @@ var EDIT_CELL = null;
 
 var GENRES   = ['BL','STRAIGHT','OTHER','YURI',''];
 var STATUSES = ['COMPLETED','ONGOING',''];
+
+var SECTION_LABELS = {
+  completed: 'Completed',
+  ongoing: 'Ongoing',
+  unknown: 'Queue',
+  favourites: 'Favourites',
+  blacklist: 'Blacklist'
+};
+
+var STATUS_OPTIONS = [
+  {val:'COMPLETED', label:'Completed', dot:'dot-completed'},
+  {val:'ONGOING',   label:'Ongoing',   dot:'dot-ongoing'},
+  {val:'',          label:'Queue',     dot:'dot-unknown'}
+];
+
+function sectionLabel(section) {
+  return SECTION_LABELS[section] || section;
+}
+
+function statusLabel(statusVal) {
+  if (statusVal === 'COMPLETED') return 'Completed';
+  if (statusVal === 'ONGOING') return 'Ongoing';
+  return 'Queue';
+}
 
 
 var SUBGENRES = {
@@ -1183,7 +1207,7 @@ function updateStats() {
   var unk   = DATA.filter(function(b){ return sectionOf(b)==='unknown'; }).length;
   var show  = FILTERED.all.length;
   document.getElementById('header-stats').textContent =
-    total+' volumes · '+comp+' completed · '+ong+' ongoing · '+unk+' unknown';
+    total+' volumes · '+comp+' completed · '+ong+' ongoing · '+unk+' in queue';
   document.getElementById('footer-info').textContent =
     show===total?show+' volumes':'Showing '+show+' of '+total;
   document.getElementById('tc-completed').textContent  = comp;
@@ -1246,19 +1270,14 @@ function openDropdown(field, id, td, e) {
       overlay.appendChild(div);
     });
   } else if(field==='status') {
-    var opts=[
-      {val:'COMPLETED',label:'Completed',dot:'dot-completed'},
-      {val:'ONGOING',  label:'Ongoing',  dot:'dot-ongoing'},
-      {val:'',         label:'Unknown',  dot:'dot-unknown'}
-    ];
-    opts.forEach(function(o){
+    STATUS_OPTIONS.forEach(function(o){
       var div=document.createElement('div'); div.className='status-dd-option';
       div.innerHTML='<span class="status-dot '+o.dot+'"></span>'+o.label;
       div.addEventListener('click',function(ev){
         ev.stopPropagation();
         var b=findBook(id); if(b){b.status=o.val;b._section=sectionOf(b);persist();}
         closeAll(); applyFilters();
-        toast('✦ Status updated — row moved to '+( o.val||'Unknown')+' section.','ok');
+        toast('✦ Status updated — row moved to '+statusLabel(o.val)+'.','ok');
       });
       overlay.appendChild(div);
     });
@@ -1328,7 +1347,7 @@ function addRow() {
     var last=rows[rows.length-1];
     if(last){ last.classList.add('selected'); startEdit(newId,'title',last.cells[2]); }
   },60);
-  toast('✦ New volume added to Unknown.','ok');
+  toast('✦ New volume added to Queue.','ok');
 }
 
 function deleteSelected() {
@@ -1431,13 +1450,13 @@ function openContextMenu(id, td, e) {
     lbl.style.cssText = 'padding:5px 12px 3px;font-family:Cormorant Garamond,serif;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:#8A7A6A;border-bottom:1px solid #E8E0D8;';
     lbl.textContent = 'Move to';
     overlay.appendChild(lbl);
-    [{val:'COMPLETED',label:'Completed',dot:'dot-completed'},{val:'ONGOING',label:'Ongoing',dot:'dot-ongoing'},{val:'',label:'Unknown',dot:'dot-unknown'}].forEach(function(o){
+    STATUS_OPTIONS.forEach(function(o){
       var div = document.createElement('div'); div.className='status-dd-option';
       div.innerHTML='<span class="status-dot '+o.dot+'"></span>'+o.label;
       div.addEventListener('click',function(ev){
         ev.stopPropagation(); b.status=o.val; b._section=sectionOf(b);
         persist(); closeAll(); applyFilters();
-        toast('Moved to '+(o.val||'Unknown')+'.','ok');
+        toast('Moved to '+statusLabel(o.val)+'.','ok');
       });
       overlay.appendChild(div);
     });
@@ -1501,7 +1520,7 @@ addRow = function() {
     var last = rows[rows.length-1];
     if(last){ last.classList.add('selected'); startEdit(newId,'title',last.cells[2]); }
   }, 60);
-  toast('New volume added to '+ACTIVE_TAB+'.','ok');
+  toast('New volume added to '+sectionLabel(ACTIVE_TAB)+'.','ok');
 };
 
 if ('serviceWorker' in navigator) {
