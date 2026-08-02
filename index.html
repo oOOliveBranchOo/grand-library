@@ -803,7 +803,7 @@ tbody tr.bl-row td { opacity: .5; }
       <span class="tb-label">Discover</span>
       <input class="discover-search" type="text" id="discover-search" placeholder="Search manga, manhwa, manhua…" autocomplete="off">
     </div>
-    <div class="discover-hint">✦ Search by title — AniList first, then MangaUpdates, then MyAnimeList as fallback.</div>
+    <div class="discover-hint">✦ Search by title — AniList first, then Kitsu, MangaUpdates, and MyAnimeList as fallbacks.</div>
     <div class="discover-filters">
       <span class="tb-label">Filter</span>
       <select class="discover-filter-select" id="discover-filter-genre" onchange="applyDiscoverFilters()" title="Main genre">
@@ -1083,13 +1083,82 @@ function searchAnilist(q) {
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({ query: query, variables: { search: q } })
   }).then(function(r) {
-    if (!r.ok) throw new Error('AniList unavailable');
-    return r.json();
+    return r.json().then(function(json) {
+      if (!r.ok || (json && json.errors && json.errors.length)) {
+        throw new Error((json && json.errors && json.errors[0] && json.errors[0].message) || 'AniList unavailable');
+      }
+      return json;
+    }, function() {
+      throw new Error('AniList unavailable');
+    });
   }).then(function(json) {
-    if (json.errors) throw new Error(json.errors[0].message || 'AniList error');
     var media = json.data && json.data.Page && json.data.Page.media;
     if (!media || !media.length) return [];
     return media.map(normalizeAnilistItem);
+  });
+}
+
+function mapKitsuStatus(s) {
+  if (s === 'finished') return 'COMPLETED';
+  if (s === 'current') return 'ONGOING';
+  return '';
+}
+
+function normalizeKitsuItem(m, genreMap) {
+  var a = m.attributes || {};
+  var titles = a.titles || {};
+  var title = titles.en || titles.en_jp || a.canonicalTitle || titles.ja_jp || 'Untitled';
+  var poster = a.posterImage || {};
+  var cover = poster.medium || poster.small || poster.large || poster.original || '';
+  var status = mapKitsuStatus(a.status);
+  var chapters = a.chapterCount ? String(a.chapterCount) : '';
+  var desc = (a.synopsis || a.description || '').replace(/<[^>]+>/g, '').trim();
+  if (desc.length > 280) desc = desc.slice(0, 277) + '…';
+  var genres = [];
+  var rel = m.relationships && m.relationships.genres && m.relationships.genres.data;
+  if (rel && genreMap) {
+    for (var i = 0; i < rel.length; i++) {
+      var g = genreMap[rel[i].id];
+      if (g) genres.push(g);
+    }
+  }
+  var age = (a.ageRating || '').toUpperCase();
+  var isAdult = age === 'R18' || age === 'R18+';
+  return {
+    source: 'Kitsu',
+    title: title,
+    cover: cover,
+    genres: genres,
+    tags: genres.slice(0, 8),
+    allTags: genres.slice(),
+    isAdult: isAdult,
+    rating: a.ageRating || '',
+    apiStatus: a.status || '',
+    status: status,
+    statusLabel: discoverStatusLabel(a.status, status),
+    chapters: chapters,
+    comment: desc
+  };
+}
+
+function searchKitsu(q) {
+  var url = 'https://kitsu.io/api/edge/manga?filter%5Btext%5D=' + encodeURIComponent(q)
+    + '&page%5Blimit%5D=20&include=genres';
+  return fetch(url, {
+    headers: { 'Accept': 'application/vnd.api+json' }
+  }).then(function(r) {
+    if (!r.ok) throw new Error('Kitsu unavailable');
+    return r.json();
+  }).then(function(json) {
+    var data = json.data;
+    if (!data || !data.length) return [];
+    var genreMap = {};
+    (json.included || []).forEach(function(inc) {
+      if (inc.type === 'genres' && inc.attributes && inc.attributes.name) {
+        genreMap[inc.id] = inc.attributes.name;
+      }
+    });
+    return data.map(function(m) { return normalizeKitsuItem(m, genreMap); });
   });
 }
 
@@ -1105,56 +1174,53 @@ function searchJikan(q) {
     });
 }
 
+function tryDiscoverSource(searchFn, label, q, reqId, state) {
+  return searchFn(q).then(function(results) {
+    if (reqId !== DISCOVER_REQ_ID) return true;
+    state.reached = true;
+    if (results && results.length) {
+      setDiscoverRawResults(results, label);
+      return true;
+    }
+    return false;
+  }, function() {
+    return reqId !== DISCOVER_REQ_ID;
+  });
+}
+
 function runDiscoverSearch(q) {
   var reqId = ++DISCOVER_REQ_ID;
+  var state = { reached: false };
   DISCOVER_REVEALED = {};
   setDiscoverStatus('Searching the archives…', false);
   document.getElementById('discover-grid').style.display = 'none';
   document.getElementById('discover-source').textContent = '';
 
-  searchAnilist(q).then(function(results) {
+  var chain = [
+    function() { return tryDiscoverSource(searchAnilist, 'AniList', q, reqId, state); },
+    function() { return tryDiscoverSource(searchKitsu, 'Kitsu', q, reqId, state); },
+    function() { return tryDiscoverSource(searchMangaUpdates, 'MangaUpdates', q, reqId, state); },
+    function() { return tryDiscoverSource(searchJikan, 'MyAnimeList (fallback)', q, reqId, state); }
+  ];
+
+  var i = 0;
+  function next() {
     if (reqId !== DISCOVER_REQ_ID) return;
-    if (results.length) {
-      setDiscoverRawResults(results, 'AniList');
+    if (i >= chain.length) {
+      if (state.reached) {
+        setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
+      } else {
+        setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
+      }
       return;
     }
-    return searchMangaUpdates(q).then(function(muResults) {
+    chain[i++]().then(function(found) {
       if (reqId !== DISCOVER_REQ_ID) return;
-      if (muResults.length) {
-        setDiscoverRawResults(muResults, 'MangaUpdates');
-        return;
-      }
-      return searchJikan(q).then(function(fallback) {
-        if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
-        else setDiscoverStatus('No volumes found for “' + q + '”. Try another spelling or romanization.', false);
-      });
+      if (found) return;
+      next();
     });
-  }).catch(function() {
-    if (reqId !== DISCOVER_REQ_ID) return;
-    searchMangaUpdates(q).then(function(muResults) {
-      if (reqId !== DISCOVER_REQ_ID) return;
-      if (muResults.length) {
-        setDiscoverRawResults(muResults, 'MangaUpdates');
-        return;
-      }
-      return searchJikan(q).then(function(fallback) {
-        if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
-        else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
-      });
-    }).catch(function() {
-      if (reqId !== DISCOVER_REQ_ID) return;
-      searchJikan(q).then(function(fallback) {
-        if (reqId !== DISCOVER_REQ_ID) return;
-        if (fallback.length) setDiscoverRawResults(fallback, 'MyAnimeList (fallback)');
-        else setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
-      }).catch(function() {
-        if (reqId !== DISCOVER_REQ_ID) return;
-        setDiscoverStatus('The archives are temporarily unreachable. Please try again shortly.', true);
-      });
-    });
-  });
+  }
+  next();
 }
 
 function discoverResultKey(r) {
