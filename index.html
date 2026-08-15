@@ -3159,8 +3159,8 @@ function openPhoneShelves() {
     { id: 'completed', label: '✦ Completed' },
     { id: 'ongoing', label: '✦ Ongoing' },
     { id: 'unknown', label: '✦ Queue' },
-    { id: 'favourites', label: '❤ Favourites' },
-    { id: 'blacklist', label: '💀 Blacklist' }
+    { id: 'favourites', label: '✦ Favourites' },
+    { id: 'blacklist', label: '✦ Blacklist' }
   ];
   document.getElementById('phone-shelf-choices').innerHTML = items.map(function(s) {
     return '<button class="phone-choice" type="button" onclick="pickPhoneShelf(\'' + s.id + '\')">'
