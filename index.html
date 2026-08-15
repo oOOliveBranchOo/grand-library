@@ -1515,6 +1515,10 @@ function addBookEntry(fields) {
     rating: fields.rating !== undefined && fields.rating !== null ? fields.rating : null,
     comment: fields.comment || '',
     subgenres: fields.subgenres || [],
+    altTitles: fields.altTitles || [],
+    discoverSource: fields.discoverSource || '',
+    discoverId: fields.discoverId || '',
+    discoverTitle: fields.discoverTitle || fields.title || '',
     _section: sectionOf({ status: status, blacklist: false })
   };
   if (fields.favourite) book.favourite = true;
@@ -1560,6 +1564,12 @@ function normalizeAnilistItem(m) {
   if (desc.length > 280) desc = desc.slice(0, 277) + '…';
   return {
     source: 'AniList',
+    sourceId: m.id ? String(m.id) : '',
+    altNames: uniqueTags([
+      m.title && m.title.english,
+      m.title && m.title.romaji,
+      m.title && m.title.native
+    ].filter(Boolean)),
     title: title,
     cover: m.coverImage && (m.coverImage.large || m.coverImage.medium) || '',
     genres: genres,
@@ -1587,6 +1597,8 @@ function normalizeJikanItem(m) {
   if (desc.length > 280) desc = desc.slice(0, 277) + '…';
   return {
     source: 'MyAnimeList',
+    sourceId: m.mal_id ? String(m.mal_id) : '',
+    altNames: uniqueTags((m.titles || []).map(function(t){ return t && t.title; }).filter(Boolean)),
     title: title,
     cover: m.images && m.images.jpg && (m.images.jpg.large_image_url || m.images.jpg.image_url) || '',
     genres: genreNames,
@@ -1705,6 +1717,8 @@ function normalizeKitsuItem(m, maps) {
   var isAdult = age === 'R18' || age === 'R18+';
   return {
     source: 'Kitsu',
+    sourceId: m.id ? String(m.id) : '',
+    altNames: uniqueTags([titles.en, titles.en_jp, a.canonicalTitle, titles.ja_jp].filter(Boolean)),
     title: title,
     cover: cover,
     genres: genres,
@@ -1955,8 +1969,7 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
     var match = findLibraryMatch(r);
     var actionBtns = '<button class="discover-btn discover-btn-silver" data-action="view" data-idx="' + idx + '">View Details</button>'
       + (match
-          ? '<button class="discover-btn" data-action="update" data-idx="' + idx + '">Update tags</button>'
-            + '<button class="discover-btn discover-btn-silver" data-action="import-new" data-idx="' + idx + '">Add as new</button>'
+          ? '<button class="discover-btn" data-action="update" data-idx="' + idx + '">Already imported — update tags</button>'
           : '<button class="discover-btn" data-action="import" data-idx="' + idx + '">✦ Import</button>');
 
     card.innerHTML =
@@ -1995,10 +2008,6 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
         return;
       }
       if (isDiscoverMature(r) && !isDiscoverRevealed(r)) return;
-      if (btn.getAttribute('data-action') === 'import-new') {
-        importDiscoverResult(idx, { forceNew: true });
-        return;
-      }
       importDiscoverResult(idx, { update: btn.getAttribute('data-action') === 'update' });
     });
   });
@@ -2058,15 +2067,7 @@ function importDiscoverResult(idx, opts) {
   var r = DISCOVER_RESULTS[idx];
   if (!r) return;
   opts = opts || {};
-  if (opts.forceNew) {
-    PENDING_DISCOVER_TARGET = null;
-  } else {
-    var match = findLibraryMatch(r);
-    PENDING_DISCOVER_TARGET = match || null;
-    if (match && !opts.update) {
-      PENDING_DISCOVER_TARGET = match;
-    }
-  }
+  PENDING_DISCOVER_TARGET = findLibraryMatch(r);
   var mapped = mapDiscoverTags(r.genres, collectDiscoverTags(r));
   if (mapped.unknownTags.length) {
     showNewTagApproval(mapped, r);
@@ -2076,7 +2077,7 @@ function importDiscoverResult(idx, opts) {
 }
 
 function finishDiscoverImport(r, mapped) {
-  var existing = PENDING_DISCOVER_TARGET;
+  var existing = PENDING_DISCOVER_TARGET || findLibraryMatch(r);
   PENDING_DISCOVER_TARGET = null;
   if (existing) {
     var oldTitle = existing.title;
@@ -2084,12 +2085,12 @@ function finishDiscoverImport(r, mapped) {
     applyDiscoverToBook(existing, r, mapped);
     persist();
     applyFilters();
+    if (DISCOVER_RAW_RESULTS.length) applyDiscoverFilters();
     var msg = oldTitle === existing.title
-      ? '✦ Tags updated on “' + existing.title + '”.'
-      : '✦ Updated “' + oldTitle + '” to “' + existing.title + '”.';
+      ? '✦ Already on your shelves — tags updated on “' + existing.title + '”.'
+      : '✦ Already on your shelves as “' + oldTitle + '”. Updated to “' + existing.title + '”.';
     toast(msg, 'ok');
     if (stayOpen) openPhoneVolume(existing.id);
-    else if (isCompactPhone()) pickPhoneShelf(sectionOf(existing));
     return;
   }
   var book = addBookEntry({
@@ -2098,9 +2099,14 @@ function finishDiscoverImport(r, mapped) {
     chapter: r.chapters,
     comment: r.comment,
     genre: mapped.genre,
-    subgenres: mapped.subgenres
+    subgenres: mapped.subgenres,
+    altTitles: uniqueTags([r.title].concat(r.altNames || [])),
+    discoverSource: r.source || '',
+    discoverId: r.sourceId ? String(r.sourceId) : '',
+    discoverTitle: r.title || ''
   });
   toast('✦ “' + book.title + '” added to ' + sectionLabel(sectionOf(book)) + '.', 'ok');
+  if (DISCOVER_RAW_RESULTS.length) applyDiscoverFilters();
   if (isCompactPhone()) pickPhoneShelf(sectionOf(book));
 }
 
@@ -2395,12 +2401,89 @@ function canonicalizeLibraryTags() {
 }
 
 function normalizeTitleKey(s) {
-  return (s || '').toLowerCase()
+  var t = (s || '').toLowerCase();
+  try { t = t.normalize('NFKD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+  return t
     .replace(/&/g, ' and ')
     .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\b(the|a|an)\b/g, ' ')
+    .replace(/\b(the|a|an|of|and)\b/g, ' ')
+    .replace(/\b(manhwa|manhua|manga|webtoon|webcomic|novel|comic|official|complete|series)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function significantTokens(s) {
+  return normalizeTitleKey(s).split(' ').filter(function(w){ return w.length > 1; });
+}
+
+function tokenSimilarity(a, b) {
+  var ta = significantTokens(a), tb = significantTokens(b);
+  if (!ta.length || !tb.length) return 0;
+  var set = {};
+  tb.forEach(function(w){ set[w] = 1; });
+  var hit = 0;
+  ta.forEach(function(w){ if (set[w]) hit++; });
+  if (!hit) return 0;
+  var union = uniqueTags(ta.concat(tb)).length;
+  return Math.max(hit / union, hit / Math.max(ta.length, tb.length));
+}
+
+function titleSimilarity(a, b) {
+  var na = normalizeTitleKey(a), nb = normalizeTitleKey(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  var shorter = na.length <= nb.length ? na : nb;
+  var longer = na.length <= nb.length ? nb : na;
+  if (longer.indexOf(shorter) !== -1) {
+    return Math.max(shorter.length / longer.length, tokenSimilarity(a, b));
+  }
+  return Math.max(
+    1 - (levenshtein(na, nb) / Math.max(na.length, nb.length)),
+    tokenSimilarity(a, b)
+  );
+}
+
+function bookTitles(b) {
+  var list = [b.title, b.discoverTitle];
+  if (Array.isArray(b.altTitles)) list = list.concat(b.altTitles);
+  return uniqueTags(list);
+}
+
+function rememberDiscoverIdentity(b, r) {
+  if (!b.altTitles) b.altTitles = [];
+  uniqueTags([b.title, r.title].concat(r.altNames || [])).forEach(function(t) {
+    if (t && b.altTitles.indexOf(t) === -1) b.altTitles.push(t);
+  });
+  if (r.source) b.discoverSource = r.source;
+  if (r.sourceId) b.discoverId = String(r.sourceId);
+  if (r.title) b.discoverTitle = r.title;
+}
+
+function findLibraryMatch(r, minScore) {
+  minScore = minScore == null ? 0.72 : minScore;
+  if (!r) return null;
+  var byId = null;
+  if (r.source && r.sourceId) {
+    DATA.forEach(function(b) {
+      if (b.discoverSource === r.source && String(b.discoverId || '') === String(r.sourceId)) byId = b;
+    });
+    if (byId) return byId;
+  }
+  var names = uniqueTags([r.title].concat(r.altNames || []));
+  var best = null, bestScore = 0;
+  DATA.forEach(function(b) {
+    bookTitles(b).forEach(function(bt) {
+      names.forEach(function(nt) {
+        var s = titleSimilarity(bt, nt);
+        if (s > bestScore) { bestScore = s; best = b; }
+      });
+    });
+  });
+  if (!best) return null;
+  var na = normalizeTitleKey(best.title), nb = normalizeTitleKey(r.title);
+  var lenRatio = Math.min(na.length, nb.length) / Math.max(na.length || 1, nb.length || 1);
+  if (lenRatio < 0.45 && na.indexOf(nb) === -1 && nb.indexOf(na) === -1 && bestScore < 0.9) return null;
+  return bestScore >= minScore ? best : null;
 }
 
 function levenshtein(a, b) {
@@ -2418,32 +2501,6 @@ function levenshtein(a, b) {
     }
   }
   return cur[b.length];
-}
-
-function titleSimilarity(a, b) {
-  var na = normalizeTitleKey(a), nb = normalizeTitleKey(b);
-  if (!na || !nb) return 0;
-  if (na === nb) return 1;
-  var shorter = na.length <= nb.length ? na : nb;
-  var longer = na.length <= nb.length ? nb : na;
-  if (longer.indexOf(shorter) !== -1) {
-    return shorter.length / longer.length;
-  }
-  return 1 - (levenshtein(na, nb) / Math.max(na.length, nb.length));
-}
-
-function findLibraryMatch(r, minScore) {
-  minScore = minScore == null ? 0.78 : minScore;
-  var best = null, bestScore = 0;
-  DATA.forEach(function(b) {
-    var s = titleSimilarity(b.title, r.title);
-    if (s > bestScore) { bestScore = s; best = b; }
-  });
-  if (!best) return null;
-  var na = normalizeTitleKey(best.title), nb = normalizeTitleKey(r.title);
-  var lenRatio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
-  if (lenRatio < 0.5 && na.indexOf(nb) === -1 && nb.indexOf(na) === -1) return null;
-  return bestScore >= minScore ? best : null;
 }
 
 function pickBestDiscoverResult(results, queryTitle) {
@@ -2465,6 +2522,7 @@ function mergeBookTags(b, incoming) {
 }
 
 function applyDiscoverToBook(b, r, mapped) {
+  rememberDiscoverIdentity(b, r);
   if (r.title && r.title !== b.title) b.title = r.title;
   if (mapped.genre && !b.genre) b.genre = mapped.genre;
   if ((!b.chapter || b.chapter === '—') && r.chapters) b.chapter = r.chapters;
