@@ -838,17 +838,16 @@ body.compact-phone .discover-grid {
   grid-template-columns: 1fr;
 }
 body.compact-phone .discover-card {
-  flex-direction: row;
-  align-items: stretch;
+  flex-direction: column;
 }
 body.compact-phone .discover-card-cover {
-  width: 96px;
-  height: 136px;
-  flex-shrink: 0;
-  border-bottom: none;
-  border-right: 1px solid #D0C0B0;
+  width: 100%;
+  height: 168px;
 }
-body.compact-phone .discover-card-body { padding: 10px 12px; }
+body.compact-phone .discover-card-tags {
+  display: flex;
+  max-height: none;
+}
 body.compact-phone .discover-hint { display: none; }
 
 .phone-home {
@@ -951,6 +950,11 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   grid-column: 1 / -1;
   font-family: 'Cormorant Garamond', serif;
   font-size: 10px; letter-spacing: .6px; text-transform: uppercase; color: #7A6858;
+}
+.phone-book-tags {
+  grid-column: 1 / -1;
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 4px;
 }
 .phone-empty {
   text-align: center; padding: 40px 16px;
@@ -1531,7 +1535,10 @@ function mapKitsuStatus(s) {
   return '';
 }
 
-function normalizeKitsuItem(m, genreMap) {
+function normalizeKitsuItem(m, maps) {
+  maps = maps || {};
+  var genreMap = maps.genres || {};
+  var catMap = maps.categories || {};
   var a = m.attributes || {};
   var titles = a.titles || {};
   var title = titles.en || titles.en_jp || a.canonicalTitle || titles.ja_jp || 'Untitled';
@@ -1543,10 +1550,18 @@ function normalizeKitsuItem(m, genreMap) {
   if (desc.length > 280) desc = desc.slice(0, 277) + '…';
   var genres = [];
   var rel = m.relationships && m.relationships.genres && m.relationships.genres.data;
-  if (rel && genreMap) {
+  if (rel) {
     for (var i = 0; i < rel.length; i++) {
       var g = genreMap[rel[i].id];
       if (g) genres.push(g);
+    }
+  }
+  var cats = [];
+  var crel = m.relationships && m.relationships.categories && m.relationships.categories.data;
+  if (crel) {
+    for (var c = 0; c < crel.length; c++) {
+      var cat = catMap[crel[c].id];
+      if (cat && genres.indexOf(cat) === -1) cats.push(cat);
     }
   }
   var age = (a.ageRating || '').toUpperCase();
@@ -1556,8 +1571,8 @@ function normalizeKitsuItem(m, genreMap) {
     title: title,
     cover: cover,
     genres: genres,
-    tags: genres.slice(0, 8),
-    allTags: genres.slice(),
+    tags: cats.slice(0, 8),
+    allTags: cats.slice(),
     isAdult: isAdult,
     rating: a.ageRating || '',
     apiStatus: a.status || '',
@@ -1570,7 +1585,7 @@ function normalizeKitsuItem(m, genreMap) {
 
 function searchKitsu(q) {
   var url = 'https://kitsu.io/api/edge/manga?filter%5Btext%5D=' + encodeURIComponent(q)
-    + '&page%5Blimit%5D=20&include=genres';
+    + '&page%5Blimit%5D=20&include=genres,categories';
   return fetch(url, {
     headers: { 'Accept': 'application/vnd.api+json' }
   }).then(function(r) {
@@ -1579,13 +1594,13 @@ function searchKitsu(q) {
   }).then(function(json) {
     var data = json.data;
     if (!data || !data.length) return [];
-    var genreMap = {};
+    var maps = { genres: {}, categories: {} };
     (json.included || []).forEach(function(inc) {
-      if (inc.type === 'genres' && inc.attributes && inc.attributes.name) {
-        genreMap[inc.id] = inc.attributes.name;
-      }
+      if (!inc.attributes || !inc.attributes.name) return;
+      if (inc.type === 'genres') maps.genres[inc.id] = inc.attributes.name;
+      if (inc.type === 'categories') maps.categories[inc.id] = inc.attributes.name;
     });
-    return data.map(function(m) { return normalizeKitsuItem(m, genreMap); });
+    return data.map(function(m) { return normalizeKitsuItem(m, maps); });
   });
 }
 
@@ -1785,7 +1800,7 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
     var card = document.createElement('div');
     card.className = 'discover-card' + (mature && !revealed ? ' mature-hidden' : '');
 
-    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; }).slice(0, 6);
+    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; }).slice(0, 8);
     var coverHtml;
     if (mature && !revealed) {
       coverHtml = '<button type="button" class="discover-mature-cover" data-reveal-idx="' + idx + '" aria-label="Reveal mature content">'
@@ -3201,12 +3216,17 @@ function renderPhoneCards() {
     return;
   }
   list.innerHTML = rows.map(function(b) {
+    var sgs = (b.subgenres || []).slice(0, 4).map(function(t) {
+      return '<span class="discover-tag">' + escHtml(t) + '</span>';
+    }).join('');
     return '<article class="phone-book" onclick="openPhoneVolume(' + b.id + ')">'
       + '<div class="phone-book-title">' + escHtml(b.title || 'Untitled') + '</div>'
       + '<div class="phone-book-ch">Ch. ' + escHtml(b.chapter || '—') + '</div>'
       + '<div class="phone-book-sec">' + escHtml(sectionLabel(sectionOf(b)))
       + (b.favourite && !b.blacklist && ACTIVE_TAB !== 'favourites' ? ' · Favourite' : '')
-      + '</div></article>';
+      + '</div>'
+      + '<div class="phone-book-tags">' + genreBadge(b.genre) + sgs + '</div>'
+      + '</article>';
   }).join('');
 }
 
