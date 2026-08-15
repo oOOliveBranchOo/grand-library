@@ -586,11 +586,17 @@ tbody tr.bl-row td { opacity: .5; }
   margin-top: 0;
 }
 .discover-tag {
-  font-family: 'Cormorant Garamond', serif; font-size: 9px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: .3px;
-  padding: 2px 6px; border-radius: 1px;
-  background: #C8CADE; border: 1px solid #9A9CB8; color: #1A1C38;
+  font-family: 'Cormorant Garamond', serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .2px;
+  padding: 3px 8px; border-radius: 2px;
+  background: #EAE0D8; border: 1px solid #B8A898; color: #4A3828;
 }
+.discover-tag.tag-bl { background: var(--bl-bg); border-color: var(--bl-border); color: var(--bl-text); }
+.discover-tag.tag-str { background: var(--str-bg); border-color: var(--str-border); color: var(--str-text); }
+.discover-tag.tag-other { background: var(--other-bg); border-color: var(--other-border); color: var(--other-text); }
+.discover-tag.tag-yuri { background: var(--yuri-bg); border-color: var(--yuri-border); color: var(--yuri-text); }
+.discover-tag.sg-story { background: #E8C0C4; border-color: #C09098; color: #6A1020; }
+.discover-tag.sg-setting { background: #C8CADE; border-color: #9A9CB8; color: #1A1C38; }
 .discover-card-actions {
   display: flex; gap: 8px; margin-top: auto; padding-top: 4px;
 }
@@ -849,21 +855,20 @@ body.compact-phone .discover-card-cover {
   height: 168px;
 }
 body.compact-phone .discover-card-tags {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
   max-height: none;
 }
-body.compact-phone .discover-tag {
-  display: block;
-  font-size: 14px;
+body.compact-phone .discover-tag,
+body.compact-phone .sg-tag {
+  display: inline-flex;
+  font-size: 13px;
   text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
-  padding: 6px 0;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid #E0D4C8;
-  border-radius: 0;
-  color: #3C1838;
+  letter-spacing: .2px;
+  font-weight: 600;
+  padding: 5px 10px;
+  margin: 0 4px 4px 0;
+  border-radius: 2px;
 }
 body.compact-phone .discover-card-meta {
   font-size: 15px;
@@ -1004,14 +1009,15 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 .phone-tag-list li {
-  font-size: 15px;
-  padding: 4px 0;
-  border-bottom: 1px solid #E8D8C8;
-  color: #3C1838;
+  padding: 0;
+  border: none;
+  color: inherit;
 }
-.phone-tag-list li:last-child { border-bottom: none; }
 .phone-tag-heading {
   font-family: 'Cormorant Garamond', serif;
   font-size: 11px; font-weight: 600;
@@ -1639,6 +1645,23 @@ function mapKitsuStatus(s) {
   return '';
 }
 
+function uniqueTags(list) {
+  var out = [];
+  (list || []).forEach(function(t) {
+    if (t && out.indexOf(t) === -1) out.push(t);
+  });
+  return out;
+}
+
+function collectDiscoverTags(r) {
+  return uniqueTags([].concat(r.genres || [], r.allTags || [], r.tags || []));
+}
+
+function kitsuIncludedLabel(inc) {
+  if (!inc || !inc.attributes) return '';
+  return inc.attributes.name || inc.attributes.title || '';
+}
+
 function normalizeKitsuItem(m, maps) {
   maps = maps || {};
   var genreMap = maps.genres || {};
@@ -1665,9 +1688,11 @@ function normalizeKitsuItem(m, maps) {
   if (crel) {
     for (var c = 0; c < crel.length; c++) {
       var cat = catMap[crel[c].id];
-      if (cat && genres.indexOf(cat) === -1) cats.push(cat);
+      if (cat) cats.push(cat);
     }
   }
+  var merged = uniqueTags(genres.concat(cats));
+  if (!genres.length) genres = merged.slice();
   var age = (a.ageRating || '').toUpperCase();
   var isAdult = age === 'R18' || age === 'R18+';
   return {
@@ -1675,8 +1700,8 @@ function normalizeKitsuItem(m, maps) {
     title: title,
     cover: cover,
     genres: genres,
-    tags: cats.slice(0, 8),
-    allTags: cats.slice(),
+    tags: merged.slice(0, 12),
+    allTags: merged,
     isAdult: isAdult,
     rating: a.ageRating || '',
     apiStatus: a.status || '',
@@ -1700,9 +1725,10 @@ function searchKitsu(q) {
     if (!data || !data.length) return [];
     var maps = { genres: {}, categories: {} };
     (json.included || []).forEach(function(inc) {
-      if (!inc.attributes || !inc.attributes.name) return;
-      if (inc.type === 'genres') maps.genres[inc.id] = inc.attributes.name;
-      if (inc.type === 'categories') maps.categories[inc.id] = inc.attributes.name;
+      var label = kitsuIncludedLabel(inc);
+      if (!label) return;
+      if (inc.type === 'genres') maps.genres[inc.id] = label;
+      if (inc.type === 'categories' || inc.type === 'category') maps.categories[inc.id] = label;
     });
     return data.map(function(m) { return normalizeKitsuItem(m, maps); });
   });
@@ -1816,8 +1842,7 @@ function getDiscoverFilters() {
 function discoverResultMatchesFilters(r, filters) {
   if (filters.status === 'COMPLETED' && r.status !== 'COMPLETED') return false;
   if (filters.status === 'ONGOING' && r.status !== 'ONGOING') return false;
-  var tagSource = r.allTags || r.tags || [];
-  var mapped = mapDiscoverTags(r.genres, tagSource);
+  var mapped = mapDiscoverTags(r.genres, collectDiscoverTags(r));
   if (filters.genre && mapped.genre !== filters.genre) return false;
   if (filters.subgenre && mapped.subgenres.indexOf(filters.subgenre) === -1) return false;
   return true;
@@ -1904,7 +1929,9 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
     var card = document.createElement('div');
     card.className = 'discover-card' + (mature && !revealed ? ' mature-hidden' : '');
 
-    var allTags = r.genres.concat(r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; }).slice(0, 8);
+    var allTags = collectDiscoverTags(r);
+    var mappedPreview = mapDiscoverTags(r.genres, allTags);
+    var shownTags = allTags.filter(function(t){ return !mapGenreFromTags([t]); }).slice(0, 10);
     var coverHtml;
     if (mature && !revealed) {
       coverHtml = '<button type="button" class="discover-mature-cover" data-reveal-idx="' + idx + '" aria-label="Reveal mature content">'
@@ -1921,11 +1948,12 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
       '<div class="discover-card-cover">' + coverHtml + '</div>'
       + '<div class="discover-card-body">'
       + '<div class="discover-card-title">' + escHtml(r.title) + '</div>'
+      + (mappedPreview.genre ? '<div class="phone-book-genre">' + genreBadge(mappedPreview.genre) + '</div>' : '')
       + '<div class="discover-card-meta">Chapter ' + escHtml(r.chapters || '—') + '</div>'
       + '<div class="discover-card-meta">' + escHtml(r.statusLabel) + '</div>'
-      + (allTags.length
-          ? '<div class="discover-card-tags"><div class="phone-tag-heading">Tags</div>' + allTags.map(function(t){
-              return '<span class="discover-tag">' + escHtml(t) + '</span>';
+      + (shownTags.length
+          ? '<div class="discover-card-tags"><div class="phone-tag-heading">Tags</div>' + shownTags.map(function(t){
+              return '<span class="' + discoverTagClass(t) + '">' + escHtml(t) + '</span>';
             }).join('') + '</div>'
           : '<div class="discover-card-meta">No tags on file</div>')
       + '<div class="discover-card-actions">'
@@ -1965,7 +1993,7 @@ function openDiscoverDetail(idx) {
   var mature = isDiscoverMature(r);
   var revealed = !mature || isDiscoverRevealed(r);
   document.getElementById('discover-detail-title').textContent = r.title;
-  var allTags = r.genres.concat(r.allTags || r.tags).filter(function(t, i, a){ return t && a.indexOf(t) === i; });
+  var allTags = collectDiscoverTags(r);
   var html = '';
   if (mature && !revealed) {
     html += '<div class="discover-mature-notice">18+ — Mature content hidden. Click to reveal cover, tags, and summary.</div>'
@@ -2009,7 +2037,7 @@ function importDiscoverResult(idx) {
   if (!r) return;
   var dup = DATA.some(function(b){ return b.title.toLowerCase() === r.title.toLowerCase(); });
   if (dup && !confirm('“' + r.title + '” may already be in your library. Import anyway?')) return;
-  var mapped = mapDiscoverTags(r.genres, r.allTags || r.tags);
+  var mapped = mapDiscoverTags(r.genres, collectDiscoverTags(r));
   if (mapped.unknownTags.length) {
     showNewTagApproval(mapped, r);
   } else {
@@ -2038,7 +2066,7 @@ function showNewTagApproval(mapped, discoverResult) {
   var html = '<div class="discover-detail-note">These tags from the source don\'t match your sub-genre list yet. Add them to Story Type or Setting, or skip each one.</div>'
     + '<div class="new-tag-list" id="new-tag-list"></div>'
     + '<div class="sync-actions">'
-    + '<button type="button" class="sync-btn sync-btn-ghost" id="new-tag-cancel">Cancel Import</button>'
+    + '<button type="button" class="sync-btn sync-btn-ghost" id="new-tag-cancel">Import without extra tags</button>'
     + '</div>';
   body.innerHTML = html;
   var list = document.getElementById('new-tag-list');
@@ -2086,8 +2114,12 @@ function resolveNewTag(tag, group) {
 }
 
 function cancelNewTagApproval() {
+  var pending = PENDING_TAG_IMPORT;
   PENDING_TAG_IMPORT = null;
   document.getElementById('new-tag-overlay').classList.remove('open');
+  if (pending && pending.discoverResult) {
+    finishDiscoverImport(pending.discoverResult, pending.mapped);
+  }
 }
 
 function onDiscoverSearchInput() {
@@ -2126,8 +2158,8 @@ var SUBGENRES = {
 var CUSTOM_SUBGENRES_KEY = 'grand_library_custom_subgenres_v1';
 
 var GENRE_EXACT = {
-  'BL': ['boys love', "boy's love", 'yaoi'],
-  'YURI': ['girls love', "girl's love", 'yuri'],
+  'BL': ['boys love', "boy's love", 'yaoi', 'shounen ai', 'shounen-ai'],
+  'YURI': ['girls love', "girl's love", 'yuri', 'shoujo ai', 'shoujo-ai'],
   'STRAIGHT': ['straight'],
   'OTHER': ['other']
 };
@@ -2136,20 +2168,20 @@ var SUBGENRE_ALIAS = {
   'Action': ['action'],
   'Comedy': ['comedy'],
   'Drama': ['drama'],
-  'Horror': ['horror'],
-  'Mystery': ['mystery'],
+  'Horror': ['horror', 'gore'],
+  'Mystery': ['mystery', 'detective'],
   'Romance': ['romance'],
-  'Thriller': ['thriller'],
-  'Slice of Life': ['slice of life'],
-  'Smut / Mature': ['smut / mature', 'smut', 'mature', 'sexual content'],
-  'Fantasy': ['fantasy'],
-  'Historical': ['historical'],
-  'Isekai / Reincarnation': ['isekai / reincarnation', 'isekai', 'reincarnation'],
-  'Modern': ['modern'],
-  'Sci-Fi': ['sci-fi', 'sci fi', 'science fiction'],
-  'Supernatural': ['supernatural'],
-  'Omegaverse': ['omegaverse'],
-  'Martial Arts': ['martial arts']
+  'Thriller': ['thriller', 'suspense'],
+  'Slice of Life': ['slice of life', 'iyashikei'],
+  'Smut / Mature': ['smut / mature', 'smut', 'mature', 'sexual content', 'erotica', 'hentai'],
+  'Fantasy': ['fantasy', 'magic'],
+  'Historical': ['historical', 'period'],
+  'Isekai / Reincarnation': ['isekai / reincarnation', 'isekai', 'reincarnation', 'transmigration'],
+  'Modern': ['modern', 'contemporary'],
+  'Sci-Fi': ['sci-fi', 'sci fi', 'science fiction', 'science-fiction'],
+  'Supernatural': ['supernatural', 'demons', 'vampire', 'vampires'],
+  'Omegaverse': ['omegaverse', 'omega verse', 'abo'],
+  'Martial Arts': ['martial arts', 'wuxia']
 };
 
 var TAG_IGNORE = {
@@ -2200,8 +2232,12 @@ function saveCustomSubgenres() {
 
 function addCustomSubgenre(group, tag) {
   if (!SUBGENRES[group]) return;
-  if (SUBGENRES[group].indexOf(tag) === -1) {
-    SUBGENRES[group].push(tag);
+    if (SUBGENRES[group].indexOf(tag) === -1) {
+      SUBGENRES[group].push(tag);
+      if (!SUBGENRE_ALIAS[tag]) SUBGENRE_ALIAS[tag] = [];
+      if (SUBGENRE_ALIAS[tag].indexOf(normalizeTag(tag)) === -1) {
+        SUBGENRE_ALIAS[tag].push(normalizeTag(tag));
+      }
     refreshAllSubgenres();
     saveCustomSubgenres();
     rebuildSubgenreFilterSelect();
@@ -2252,6 +2288,11 @@ function mapSubgenresFromTags(tags) {
         matched.push(canonical);
       }
     });
+    ALL_SUBGENRES.forEach(function(canonical) {
+      if (normalizeTag(canonical) === n && matched.indexOf(canonical) === -1) {
+        matched.push(canonical);
+      }
+    });
   });
   return matched;
 }
@@ -2259,11 +2300,11 @@ function mapSubgenresFromTags(tags) {
 function mapDiscoverTags(genreList, extraTags) {
   genreList = (genreList || []).filter(Boolean);
   extraTags = (extraTags || []).filter(Boolean);
-  var allTags = genreList.concat(extraTags);
+  var allTags = uniqueTags(genreList.concat(extraTags));
   var genre = mapGenreFromTags(allTags);
   var subgenres = mapSubgenresFromTags(allTags);
   var unknownTags = [];
-  genreList.forEach(function(tag) {
+  allTags.forEach(function(tag) {
     var n = normalizeTag(tag);
     if (!n || TAG_IGNORE[n]) return;
     if (mapGenreFromTags([tag])) return;
@@ -2271,7 +2312,20 @@ function mapDiscoverTags(genreList, extraTags) {
     if (ALL_SUBGENRES.some(function(s){ return normalizeTag(s) === n; })) return;
     if (unknownTags.indexOf(tag) === -1) unknownTags.push(tag);
   });
+  if (unknownTags.length > 8) unknownTags = unknownTags.slice(0, 8);
   return { genre: genre, subgenres: subgenres, unknownTags: unknownTags };
+}
+
+function discoverTagClass(name) {
+  var genre = mapGenreFromTags([name]);
+  if (genre === 'BL') return 'discover-tag tag-bl';
+  if (genre === 'STRAIGHT') return 'discover-tag tag-str';
+  if (genre === 'OTHER') return 'discover-tag tag-other';
+  if (genre === 'YURI') return 'discover-tag tag-yuri';
+  var mapped = mapSubgenresFromTags([name]);
+  if (mapped.length && SUBGENRES['Story Type'].indexOf(mapped[0]) !== -1) return 'discover-tag sg-story';
+  if (mapped.length) return 'discover-tag sg-setting';
+  return 'discover-tag';
 }
 
 var ALL_SUBGENRES = Object.values(SUBGENRES).flat();
@@ -3373,7 +3427,7 @@ function renderPhoneCards() {
     var sgs = b.subgenres || [];
     var tagHtml = sgs.length
       ? '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list">' + sgs.map(function(t) {
-          return '<li>' + escHtml(t) + '</li>';
+          return '<li><span class="sg-tag ' + sgClass(t) + '">' + escHtml(t) + '</span></li>';
         }).join('') + '</ul>'
       : '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list"><li>None yet — tap to add</li></ul>';
     return '<article class="phone-book" onclick="openPhoneVolume(' + b.id + ')">'
