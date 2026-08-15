@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Grand Library — Layout Test (not live)</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F0E8DC; --cream: #F5EFE6; --silver: #8A7A6A; --ink: #2D2F56; --quill: #1A1C38;
+  --rose: #9B3040; --bl-bg: #C8CADE; --str-bg: #D4B8CC; --other-bg: #E8C0C4; --yuri-bg: #F0DCA8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'EB Garamond', serif;
+  background: #3A2A28;
+  color: var(--quill);
+}
+
+.switcher {
+  position: sticky; top: 0; z-index: 50;
+  background: #1A1C38; color: #F5EFE6;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.switcher strong { font-family: 'Cormorant Garamond', serif; letter-spacing: .4px; }
+.switcher button {
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 12px;
+  padding: 6px 10px; border-radius: 2px; cursor: pointer;
+  border: 1px solid #C0A860; background: #2D2F56; color: #F0DCA8;
+}
+.switcher button.on { background: #F0DCA8; color: #6A4808; }
+.switcher em { opacity: .75; font-size: 12px; }
+
+.app {
+  background: var(--bg);
+  min-height: calc(100% - 48px);
+  display: flex; flex-direction: column;
+}
+body.force-phone { display: flex; justify-content: center; background: #2a1816; }
+body.force-phone .app {
+  width: 100%; max-width: 430px; height: calc(100vh - 48px);
+  box-shadow: 0 0 0 8px #1A1C38; overflow: hidden;
+}
+
+.banner {
+  background: #6A1020; color: #F5EFE6; text-align: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 11px; letter-spacing: .8px;
+  text-transform: uppercase; padding: 8px 12px;
+  padding-top: calc(8px + env(safe-area-inset-top, 0px));
+}
+.banner span { font-family: 'EB Garamond', serif; font-style: italic; text-transform: none; letter-spacing: 0; opacity: .85; }
+
+header.top {
+  background: #E8C0C4; border-bottom: 2px solid #8A7A6A;
+  padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.titles h1 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600; color: #6A1020; }
+.titles p { font-family: 'Pinyon Script', cursive; font-size: 15px; color: #6A4808; }
+#who { font-style: italic; font-size: 12px; color: #6A1020; }
+
+.pages { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+.page { display: none; padding: 14px; padding-bottom: 96px; }
+.page.on { display: block; }
+
+.welcome {
+  text-align: center; background: #F5EFE6; border: 1px solid #C0A890;
+  padding: 32px 20px 24px; border-radius: 4px; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(60,30,20,.08);
+}
+.welcome .script { font-family: 'Pinyon Script', cursive; font-size: 28px; color: #6A1020; display: block; }
+.welcome .orn { color: #9B3040; margin: 10px 0; letter-spacing: 6px; }
+.welcome p { font-size: 15px; line-height: 1.7; max-width: 420px; margin: 0 auto 12px; }
+.account-chip {
+  display: inline-block; background: #C8CADE; border: 1px solid #9A9CB8;
+  padding: 6px 12px; font-size: 13px; margin-top: 4px;
+}
+
+.home-links { display: grid; gap: 8px; }
+.home-link {
+  width: 100%; text-align: left; padding: 12px 14px;
+  background: #F5EFE6; border: 1px solid #C8B8A8; border-radius: 4px; cursor: pointer;
+}
+.home-link b { display: block; font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--ink); }
+.home-link span { font-size: 13px; color: #7A6858; font-style: italic; }
+
+.search-row { display: flex; gap: 8px; margin-bottom: 12px; position: sticky; top: 0; background: var(--bg); padding: 4px 0 8px; z-index: 2; }
+.search-row input {
+  flex: 1; font-family: 'EB Garamond', serif; font-size: 16px;
+  padding: 10px 12px; border: 1px solid #9AAAC0; border-bottom: 2px solid #5A8AA8;
+  background: #F5EFE6; border-radius: 2px;
+}
+.add-btn {
+  padding: 0 14px; border: 1px solid #C0A860; background: #F0DCA8; color: #6A4808;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; border-radius: 2px; cursor: pointer;
+}
+
+.book {
+  background: #F5EFE6; border: 1px solid #C0A890; border-radius: 4px;
+  padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+  display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: baseline;
+}
+.book:active { background: #EDE5D8; }
+.book-title { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600; color: var(--ink); }
+.book-ch { font-size: 13px; color: #5C4A3A; }
+.sec {
+  grid-column: 1 / -1; font-family: 'Cormorant Garamond', serif; font-size: 10px;
+  letter-spacing: .6px; text-transform: uppercase; color: #7A6858;
+}
+
+.discover-card {
+  background: #F5EFE6; border: 1px solid #C0A890; border-radius: 4px;
+  padding: 12px; margin-bottom: 10px; display: flex; gap: 12px;
+}
+.cover {
+  width: 64px; height: 88px; background: linear-gradient(160deg,#D4B8CC,#E8C0C4);
+  border: 1px solid #C09098; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  color: #6A1020; font-size: 20px;
+}
+.discover-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 16px; }
+.discover-card button {
+  margin-top: 8px; padding: 6px 10px; border: 1px solid #C0A860; background: #F0DCA8;
+  font-family: 'Cormorant Garamond', serif; cursor: pointer;
+}
+
+/* Desktop extras */
+.desk-ribbon {
+  display: none; background: #2D2F56; padding: 0 14px; gap: 4px; overflow-x: auto;
+}
+.desk-ribbon button {
+  border: none; background: transparent; color: #8BAFC4; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 12px;
+  letter-spacing: .5px; text-transform: uppercase; padding: 11px 16px 9px;
+  border-bottom: 3px solid transparent;
+}
+.desk-ribbon button.on { color: #3C1838; background: #D4B8CC; border-bottom-color: #A888A0; }
+
+table.desk { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.desk th {
+  background: #D4B8CC; text-align: left; padding: 8px;
+  font-family: 'Cormorant Garamond', serif; font-size: 12px; letter-spacing: .6px; text-transform: uppercase;
+}
+table.desk td { border: 1px solid #D0C0B0; padding: 8px; background: #F5EFE6; }
+table.desk tr:nth-child(even) td { background: #EDE5D8; }
+table.desk tr { cursor: pointer; }
+
+.genre { font-size: 10px; font-weight: 600; padding: 2px 7px; border: 1px solid #9A9CB8; border-radius: 2px; }
+.genre.BL { background: var(--bl-bg); }
+.genre.STRAIGHT { background: var(--str-bg); }
+.genre.OTHER { background: var(--other-bg); }
+.genre.YURI { background: var(--yuri-bg); }
+
+.dock {
+  position: sticky; bottom: 0; background: #E8C0C4; border-top: 2px solid #C09098;
+  display: flex; padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+.dock button {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .4px; text-transform: uppercase; color: #6A1020; padding: 8px 2px;
+}
+.dock button.on { background: rgba(245,239,230,.55); }
+.dock button span { display: block; font-size: 17px; margin-bottom: 1px; }
+
+.overlay {
+  position: fixed; inset: 0; background: rgba(26,28,56,.45);
+  display: none; align-items: flex-end; z-index: 30;
+}
+.overlay.open { display: flex; }
+.sheet {
+  width: 100%; max-height: 88%; overflow: auto; background: var(--cream);
+  border-top: 2px solid #C0A890; border-radius: 14px 14px 0 0;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.sheet h2 { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--ink); margin-bottom: 10px; }
+.shelf-choice {
+  width: 100%; text-align: left; padding: 13px 12px; margin-bottom: 6px;
+  background: #F5EFE6; border: 1px solid #C8B8A8; border-radius: 4px; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 16px;
+}
+.shelf-choice small { float: right; font-family: 'EB Garamond', serif; font-style: italic; color: #7A6858; }
+.field { margin-bottom: 10px; text-align: left; }
+.field label {
+  display: block; font-family: 'Cormorant Garamond', serif; font-size: 11px;
+  letter-spacing: .7px; text-transform: uppercase; color: #7A6858; margin-bottom: 4px;
+}
+.field input, .field select, .field textarea {
+  width: 100%; padding: 9px 10px; font-family: 'EB Garamond', serif; font-size: 16px;
+  border: 1px solid #C8B8A8; border-bottom: 2px solid #9B3040; background: #fff;
+}
+.actions { display: flex; gap: 8px; margin-top: 12px; }
+.actions button { flex: 1; padding: 12px; font-family: 'Cormorant Garamond', serif; font-weight: 600; cursor: pointer; border-radius: 2px; }
+.primary { background: #9B3040; color: #F5EFE6; border: none; }
+.ghost { background: #F5EFE6; color: #6A1020; border: 1px solid #C09098; }
+
+.toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: #F5EFE6; border: 1px solid #8A7A6A; padding: 8px 16px;
+  font-style: italic; opacity: 0; pointer-events: none; transition: .25s; z-index: 40;
+}
+.toast.show { opacity: 1; }
+
+.empty { text-align: center; padding: 36px 12px; font-style: italic; color: #8A7A6A; }
+
+/* Adaptive: computer gets table + top ribbon, no sticky phone dock crowding */
+body.mode-desk .desk-ribbon { display: flex; }
+body.mode-desk .dock { display: none; }
+body.mode-desk .phone-only { display: none; }
+body.mode-desk .page { padding-bottom: 24px; }
+body.mode-desk .app { max-width: none; height: auto; box-shadow: none; }
+body.mode-desk { display: block; background: var(--bg); }
+body.mode-phone .desk-only { display: none; }
+body.mode-desk .desk-only { display: block; }
+body.mode-phone .desk-only { display: none; }
+
+@media (min-width: 860px) {
+  body.mode-auto .desk-ribbon { display: flex; }
+  body.mode-auto .dock { display: none; }
+  body.mode-auto .phone-only { display: none; }
+  body.mode-auto .desk-only { display: block; }
+  body.mode-auto .page { padding-bottom: 24px; }
+}
+@media (max-width: 859px) {
+  body.mode-auto .desk-only { display: none; }
+  body.mode-auto .phone-only { display: block; }
+}
+</style>
+</head>
+<body class="mode-auto">
+<div class="switcher">
+  <strong>Layout test — live library unchanged</strong>
+  <button type="button" id="btn-auto" class="on" onclick="setMode('auto')">Auto (adapts)</button>
+  <button type="button" id="btn-phone" onclick="setMode('phone')">Phone</button>
+  <button type="button" id="btn-desk" onclick="setMode('desk')">Computer</button>
+  <em>Computer keeps a spreadsheet. Phone uses short cards + bottom shelves.</em>
+</div>
+
+<div class="app">
+  <div class="banner">Test only · <span>nothing here is saved to your real library</span></div>
+  <header class="top">
+    <div class="titles">
+      <h1>✦ The Grand Library</h1>
+      <p>Book List</p>
+    </div>
+    <div id="who">✦ you@example.com</div>
+  </header>
+  <nav class="desk-ribbon" id="desk-ribbon"></nav>
+
+  <div class="pages">
+    <div class="page on" id="pg-home">
+      <div class="welcome">
+        <span class="script">Hello, reader</span>
+        <div class="orn">✦ ❧ ✦</div>
+        <p>Your quiet corner of the stacks. On a phone you’ll get short cards; on a computer, the familiar table. Same library either way.</p>
+        <div class="account-chip">Signed in as <strong>you@example.com</strong></div>
+      </div>
+      <div class="home-links">
+        <button class="home-link" type="button" onclick="openShelfMenu()"><b>✦ The Shelves</b><span>Completed, Ongoing, Queue, Favourites, Blacklist</span></button>
+        <button class="home-link" type="button" onclick="go('discover')"><b>✧ Discover</b><span>Search and bring a title onto a shelf</span></button>
+        <button class="home-link" type="button" onclick="toast('On the real app this would open backup / sync / log out.')"><b>☁ Account</b><span>Backup, export, and sign out</span></button>
+      </div>
+    </div>
+
+    <div class="page" id="pg-shelf">
+      <div class="search-row">
+        <input id="search" type="search" placeholder="Search titles…" oninput="renderShelf()">
+        <button class="add-btn" type="button" onclick="addVolume()">＋ Add</button>
+      </div>
+      <div class="phone-only" id="card-list"></div>
+      <div class="desk-only" id="table-wrap"></div>
+    </div>
+
+    <div class="page" id="pg-discover">
+      <div class="search-row">
+        <input id="dsearch" type="search" placeholder="Search manga, manhwa…" oninput="renderDiscover()">
+      </div>
+      <div id="discover-list"></div>
+    </div>
+  </div>
+
+  <nav class="dock">
+    <button type="button" id="dock-shelf" onclick="openShelfMenu()"><span>✦</span>Shelves</button>
+    <button type="button" id="dock-disc" class="on" onclick="go('discover')"><span>✧</span>Discover</button>
+    <button type="button" id="dock-home" onclick="go('home')"><span>❦</span>Home</button>
+  </nav>
+</div>
+
+<div class="overlay" id="shelf-overlay" onclick="if(event.target===this)closeOverlays()">
+  <div class="sheet">
+    <h2>Choose a shelf</h2>
+    <div id="shelf-choices"></div>
+    <div class="actions"><button class="ghost" type="button" onclick="closeOverlays()">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="detail-overlay" onclick="if(event.target===this)closeOverlays()">
+  <div class="sheet" id="detail-sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var ACCOUNT = 'you@example.com';
+var SHELF = 'completed';
+var VIEW = 'home';
+var MODE = 'auto';
+var BOOKS = [
+  { id:1, title:'The Villainess Wants a Happy Ending', genre:'BL', status:'COMPLETED', chapter:'Fin', rating:5, tags:['Romance','Fantasy'], comment:'Reread-worthy.', fav:true, blacklist:false },
+  { id:2, title:'Quiet Hours at the Archive', genre:'STRAIGHT', status:'ONGOING', chapter:'48', rating:4, tags:['Slice of Life','Historical'], comment:'Waiting on the next upload.', fav:false, blacklist:false },
+  { id:3, title:'Moonlight Apothecary', genre:'YURI', status:'COMPLETED', chapter:'120', rating:4, tags:['Fantasy','Mystery'], comment:'', fav:false, blacklist:false },
+  { id:4, title:'Contract Husband, Accidental Heart', genre:'BL', status:'ONGOING', chapter:'62', rating:3, tags:['Romance','Modern'], comment:'Skip the filler.', fav:false, blacklist:false },
+  { id:5, title:'A Culinary Isekai', genre:'OTHER', status:'', chapter:'', rating:null, tags:['Isekai / Reincarnation','Comedy'], comment:'Rainy-week pick.', fav:false, blacklist:false },
+  { id:6, title:'Glass Orchard', genre:'YURI', status:'COMPLETED', chapter:'Fin', rating:5, tags:['Drama','Supernatural'], comment:'Favourite for a reason.', fav:true, blacklist:false },
+  { id:7, title:'Something I’d rather forget', genre:'OTHER', status:'ONGOING', chapter:'12', rating:1, tags:['Horror'], comment:'Dropped.', fav:false, blacklist:true }
+];
+var DISCOVER = [
+  { title:'Omniscient Reader', genre:'OTHER', chapter:'224' },
+  { title:'The Magical Revolution', genre:'YURI', chapter:'Fin' },
+  { title:'Painter of the Night', genre:'BL', chapter:'102' }
+];
+var SHELVES = [
+  { id:'completed', label:'Completed' },
+  { id:'ongoing', label:'Ongoing' },
+  { id:'queue', label:'Queue' },
+  { id:'favourites', label:'Favourites' },
+  { id:'blacklist', label:'Blacklist' }
+];
+
+function countShelf(id) {
+  return BOOKS.filter(function(b){ return onShelf(b, id); }).length;
+}
+function onShelf(b, id) {
+  if (id === 'completed') return !b.blacklist && b.status === 'COMPLETED';
+  if (id === 'ongoing') return !b.blacklist && b.status === 'ONGOING';
+  if (id === 'queue') return !b.blacklist && !b.status;
+  if (id === 'favourites') return !b.blacklist && b.fav;
+  if (id === 'blacklist') return !!b.blacklist;
+  return false;
+}
+function sectionLabel(b) {
+  if (b.blacklist) return 'Blacklist';
+  if (b.status === 'COMPLETED') return 'Completed';
+  if (b.status === 'ONGOING') return 'Ongoing';
+  return 'Queue';
+}
+function stars(n) {
+  if (n == null) return 'Unrated';
+  return '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+}
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 1800);
+}
+function closeOverlays() {
+  document.getElementById('shelf-overlay').classList.remove('open');
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function setMode(m) {
+  MODE = m;
+  document.body.className = m === 'phone' ? 'mode-phone force-phone' : (m === 'desk' ? 'mode-desk' : 'mode-auto');
+  ['auto','phone','desk'].forEach(function(k){
+    document.getElementById('btn-' + k).classList.toggle('on', k === m);
+  });
+  renderAll();
+}
+
+function go(page) {
+  VIEW = page;
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
+  var map = { home:'pg-home', shelf:'pg-shelf', discover:'pg-discover' };
+  document.getElementById(map[page]).classList.add('on');
+  document.getElementById('dock-shelf').classList.toggle('on', page === 'shelf');
+  document.getElementById('dock-disc').classList.toggle('on', page === 'discover');
+  document.getElementById('dock-home').classList.toggle('on', page === 'home');
+  closeOverlays();
+  renderAll();
+}
+
+function openShelfMenu() {
+  document.getElementById('shelf-choices').innerHTML = SHELVES.map(function(s){
+    return '<button class="shelf-choice" type="button" onclick="pickShelf(\''+s.id+'\')">'
+      + (s.id === 'blacklist' ? '💀 ' : '✦ ') + s.label
+      + '<small>'+countShelf(s.id)+'</small></button>';
+  }).join('');
+  document.getElementById('shelf-overlay').classList.add('open');
+}
+function pickShelf(id) {
+  SHELF = id;
+  closeOverlays();
+  go('shelf');
+}
+
+function renderDeskRibbon() {
+  document.getElementById('desk-ribbon').innerHTML =
+    '<button type="button" class="'+(VIEW==='home'?'on':'')+'" onclick="go(\'home\')">Home</button>'
+    + SHELVES.map(function(s){
+      return '<button type="button" class="'+(VIEW==='shelf' && SHELF===s.id?'on':'')+'" onclick="pickShelf(\''+s.id+'\')">'+s.label+' '+countShelf(s.id)+'</button>';
+    }).join('')
+    + '<button type="button" class="'+(VIEW==='discover'?'on':'')+'" onclick="go(\'discover\')">Discover</button>';
+}
+
+function currentBooks() {
+  var q = (document.getElementById('search').value || '').toLowerCase();
+  return BOOKS.filter(function(b){
+    if (!onShelf(b, SHELF)) return false;
+    if (q && (b.title + ' ' + (b.comment||'')).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+}
+
+function renderShelf() {
+  var rows = currentBooks();
+  var title = SHELVES.filter(function(s){ return s.id === SHELF; })[0].label;
+  var cards = document.getElementById('card-list');
+  if (!rows.length) {
+    cards.innerHTML = '<div class="empty">Nothing on '+title+' yet. Tap ＋ Add, or Discover a title.</div>';
+  } else {
+    cards.innerHTML = rows.map(function(b){
+      return '<article class="book" onclick="openDetail('+b.id+')">'
+        + '<div class="book-title">'+esc(b.title)+'</div>'
+        + '<div class="book-ch">Ch. '+(b.chapter || '—')+'</div>'
+        + '<div class="sec">'+sectionLabel(b)+(b.fav && SHELF!=='favourites'?' · Favourite':'')+'</div>'
+        + '</article>';
+    }).join('');
+  }
+  var wrap = document.getElementById('table-wrap');
+  wrap.innerHTML = '<h2 style="font-family:Cormorant Garamond,serif;margin:0 0 10px">'+title+'</h2>'
+    + (rows.length ? ('<table class="desk"><thead><tr><th>Genre</th><th>Title</th><th>Chapter</th><th>Rating</th><th>Comment</th></tr></thead><tbody>'
+    + rows.map(function(b){
+      return '<tr onclick="openDetail('+b.id+')"><td><span class="genre '+b.genre+'">'+b.genre+'</span></td><td>'+esc(b.title)+'</td><td>'+(b.chapter||'—')+'</td><td>'+stars(b.rating)+'</td><td>'+esc(b.comment||'')+'</td></tr>';
+    }).join('') + '</tbody></table>') : '<div class="empty">This shelf is empty.</div>');
+}
+
+function renderDiscover() {
+  var q = (document.getElementById('dsearch').value || '').toLowerCase();
+  var list = DISCOVER.filter(function(d){ return !q || d.title.toLowerCase().indexOf(q) !== -1; });
+  document.getElementById('discover-list').innerHTML = list.map(function(d,i){
+    return '<div class="discover-card"><div class="cover">✦</div><div>'
+      + '<h3>'+esc(d.title)+'</h3><p style="font-size:13px;color:#7A6858">'+d.genre+' · Ch. '+d.chapter+'</p>'
+      + '<button type="button" onclick="importDiscover('+i+')">Import to Queue</button></div></div>';
+  }).join('') || '<div class="empty">No titles matched.</div>';
+}
+
+function importDiscover(i) {
+  var d = DISCOVER[i];
+  BOOKS.push({ id: Date.now(), title:d.title, genre:d.genre, status:'', chapter:d.chapter, rating:null, tags:[], comment:'Imported from Discover', fav:false, blacklist:false });
+  toast('Added to Queue');
+  pickShelf('queue');
+}
+
+function addVolume() {
+  var status = SHELF === 'completed' ? 'COMPLETED' : SHELF === 'ongoing' ? 'ONGOING' : '';
+  var b = { id: Date.now(), title:'New Volume', genre:'OTHER', status:status, chapter:'', rating:null, tags:[], comment:'', fav: SHELF==='favourites', blacklist: SHELF==='blacklist' };
+  BOOKS.push(b);
+  renderAll();
+  openDetail(b.id);
+}
+
+function openDetail(id) {
+  var b = BOOKS.filter(function(x){ return x.id === id; })[0];
+  if (!b) return;
+  document.getElementById('detail-sheet').innerHTML =
+    '<h2>Volume</h2>'
+    + field('Title','title', b.title)
+    + '<div class="field"><label>Genre</label><select id="f-genre">'
+    + ['BL','STRAIGHT','OTHER','YURI'].map(function(g){ return '<option '+(b.genre===g?'selected':'')+' value="'+g+'">'+g+'</option>'; }).join('')
+    + '</select></div>'
+    + '<div class="field"><label>Section</label><select id="f-status">'
+    + [['COMPLETED','Completed'],['ONGOING','Ongoing'],['','Queue']].map(function(s){ return '<option '+(b.status===s[0]?'selected':'')+' value="'+s[0]+'">'+s[1]+'</option>'; }).join('')
+    + '</select></div>'
+    + field('Chapter','chapter', b.chapter || '')
+    + '<div class="field"><label>Rating</label><select id="f-rating"><option value="">Unrated</option>'
+    + [1,2,3,4,5].map(function(n){ return '<option '+(b.rating===n?'selected':'')+' value="'+n+'">'+stars(n)+'</option>'; }).join('')
+    + '</select></div>'
+    + '<div class="field"><label>Comment</label><textarea id="f-comment" rows="3">'+esc(b.comment||'')+'</textarea></div>'
+    + '<div class="field"><label><input type="checkbox" id="f-fav" '+(b.fav?'checked':'')+'> Favourite</label></div>'
+    + '<div class="field"><label><input type="checkbox" id="f-bl" '+(b.blacklist?'checked':'')+'> Blacklist</label></div>'
+    + '<div class="actions"><button class="ghost" type="button" onclick="closeOverlays()">Cancel</button>'
+    + '<button class="primary" type="button" onclick="saveDetail('+id+')">Save</button></div>';
+  document.getElementById('detail-overlay').classList.add('open');
+}
+function field(label, id, val) {
+  return '<div class="field"><label>'+label+'</label><input id="f-'+id+'" value="'+esc(val)+'"></div>';
+}
+function saveDetail(id) {
+  var b = BOOKS.filter(function(x){ return x.id === id; })[0];
+  b.title = document.getElementById('f-title').value.trim() || b.title;
+  b.genre = document.getElementById('f-genre').value;
+  b.status = document.getElementById('f-status').value;
+  b.chapter = document.getElementById('f-chapter').value.trim();
+  var r = document.getElementById('f-rating').value;
+  b.rating = r ? Number(r) : null;
+  b.comment = document.getElementById('f-comment').value;
+  b.fav = document.getElementById('f-fav').checked;
+  b.blacklist = document.getElementById('f-bl').checked;
+  closeOverlays();
+  toast('Saved on this test only — not your real library');
+  renderAll();
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; });
+}
+function renderAll() {
+  renderDeskRibbon();
+  if (VIEW === 'shelf') renderShelf();
+  if (VIEW === 'discover') renderDiscover();
+}
+
+setMode('auto');
+go('home');
+</script>
+</body>
+</html>
