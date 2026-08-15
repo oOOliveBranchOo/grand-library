@@ -1006,7 +1006,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   flex: 1;
 }
 .phone-sheet-actions {
-  display: flex; gap: 8px;
+  display: flex; flex-wrap: wrap; gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid #D0C0B0;
   background: #F5EFE6;
@@ -1017,6 +1017,12 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   flex: 1; padding: 14px;
   font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 15px;
   border-radius: 2px; cursor: pointer;
+}
+.phone-sheet-actions .phone-remove {
+  flex: 1 1 100%;
+  background: #F5EFE6;
+  color: #6A1020;
+  border: 1px solid #C09098;
 }
 .phone-choice {
   width: 100%; text-align: left; padding: 14px 12px; margin-bottom: 6px;
@@ -1274,6 +1280,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
     <div class="phone-sheet-actions">
       <button type="button" id="phone-volume-cancel" onclick="closePhoneSheets()" style="background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Cancel</button>
       <button type="button" id="phone-volume-save" onclick="savePhoneVolume()" style="background:#9B3040;color:#F5EFE6;border:none">Save</button>
+      <button type="button" class="phone-remove" onclick="deletePhoneVolume()">Remove this volume</button>
     </div>
   </div>
 </div>
@@ -3283,6 +3290,19 @@ function savePhoneVolume() {
   closePhoneSheets();
   applyFilters();
   toast('✦ Volume saved.', 'ok');
+}
+
+function deletePhoneVolume() {
+  var id = PHONE_EDIT_ID;
+  var b = findBook(id);
+  if (!b) { closePhoneSheets(); return; }
+  var label = b.title || 'this volume';
+  if (!confirm('Remove “' + label + '” from the library?')) return;
+  DATA = DATA.filter(function(item){ return item.id !== id; });
+  persist();
+  closePhoneSheets();
+  applyFilters();
+  toast('Volume removed.', 'ok');
 }
 
 startAuth();
