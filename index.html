@@ -581,6 +581,10 @@ tbody tr.bl-row td { opacity: .5; }
 .discover-card-tags {
   display: flex; flex-wrap: wrap; gap: 4px;
 }
+.discover-card-tags .phone-tag-heading {
+  flex: 1 1 100%;
+  margin-top: 0;
+}
 .discover-tag {
   font-family: 'Cormorant Garamond', serif; font-size: 9px; font-weight: 600;
   text-transform: uppercase; letter-spacing: .3px;
@@ -845,8 +849,33 @@ body.compact-phone .discover-card-cover {
   height: 168px;
 }
 body.compact-phone .discover-card-tags {
-  display: flex;
+  display: block;
   max-height: none;
+}
+body.compact-phone .discover-tag {
+  display: block;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #E0D4C8;
+  border-radius: 0;
+  color: #3C1838;
+}
+body.compact-phone .discover-card-meta {
+  font-size: 15px;
+  margin: 4px 0;
+}
+body.compact-phone .badge {
+  font-size: 13px;
+  padding: 4px 9px;
+}
+body.compact-phone .discover-filter-select {
+  font-size: 16px;
+  padding: 8px 10px;
 }
 body.compact-phone .discover-hint { display: none; }
 
@@ -907,12 +936,22 @@ body.compact-phone .discover-hint { display: none; }
   background: #C8CADE;
   border-bottom: 1px solid #9A9CB8;
   flex-shrink: 0;
+  align-items: center;
 }
 body.compact-phone.phone-panel-shelf .phone-shelfbar { display: flex; }
 .phone-shelfbar input {
-  flex: 1; font-size: 16px; font-family: 'EB Garamond', serif;
+  flex: 1; min-width: 0; font-size: 16px; font-family: 'EB Garamond', serif;
   padding: 10px 12px; border: 1px solid #9AAAC0; border-bottom: 2px solid #5A8AA8;
   background: #F5EFE6; border-radius: 2px; color: #1A1C38;
+}
+.phone-shelfbar .tb-btn {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+.phone-shelfbar .phone-tag-btn.on {
+  background: #9B3040;
+  border-color: #7A2030;
+  color: #F5EFE6;
 }
 .phone-cards {
   display: none;
@@ -933,28 +972,51 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   border-radius: 4px;
   padding: 12px 14px;
   margin-bottom: 8px;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 12px;
-  align-items: baseline;
+  display: block;
   cursor: pointer;
 }
 .phone-book:active { background: #EDE5D8; }
 .phone-book-title {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 16px; font-weight: 600; color: var(--ink);
+  font-size: 18px; font-weight: 600; color: var(--ink);
   line-height: 1.25;
+  margin-bottom: 8px;
 }
-.phone-book-ch { font-size: 13px; color: #5C4A3A; }
-.phone-book-sec {
-  grid-column: 1 / -1;
+.phone-book-ch {
+  font-size: 17px;
+  color: #1A1C38;
+  margin-bottom: 2px;
+}
+.phone-book-ch span {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 10px; letter-spacing: .6px; text-transform: uppercase; color: #7A6858;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: #7A6858;
+  display: block;
 }
-.phone-book-tags {
-  grid-column: 1 / -1;
-  display: flex; flex-wrap: wrap; gap: 4px;
-  margin-top: 4px;
+.phone-book-sec {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px; letter-spacing: .6px; text-transform: uppercase; color: #7A6858;
+  margin-bottom: 8px;
+}
+.phone-book-tags { margin-top: 6px; }
+.phone-tag-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.phone-tag-list li {
+  font-size: 15px;
+  padding: 4px 0;
+  border-bottom: 1px solid #E8D8C8;
+  color: #3C1838;
+}
+.phone-tag-list li:last-child { border-bottom: none; }
+.phone-tag-heading {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: #7A6858; margin-top: 8px;
 }
 .phone-empty {
   text-align: center; padding: 40px 16px;
@@ -1029,6 +1091,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   background: #F5EFE6; border: 1px solid #C8B8A8; border-radius: 4px;
   font-family: 'Cormorant Garamond', serif; font-size: 16px; cursor: pointer;
 }
+.phone-choice.on { border-color: #9B3040; background: #E8C0C4; }
 .phone-choice small { float: right; font-family: 'EB Garamond', serif; font-style: italic; color: #7A6858; }
 .phone-field { margin-bottom: 12px; }
 .phone-field label {
@@ -1043,12 +1106,36 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   border: 1px solid #C8B8A8; border-bottom: 2px solid #9B3040;
   background: #fff; border-radius: 2px;
 }
-.phone-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.phone-chips label {
-  font-size: 12px; padding: 5px 8px; background: #E8D8C8;
-  border: 1px solid #C8B8A8; border-radius: 2px;
-  text-transform: none; letter-spacing: 0; font-weight: 500;
+.phone-chips { display: block; }
+.phone-tag-group {
+  background: #EDE5D8;
+  border: 1px solid #D0C0B0;
+  border-radius: 3px;
+  margin-bottom: 10px;
+  overflow: hidden;
 }
+.phone-tag-group h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12px; font-weight: 600;
+  letter-spacing: .7px; text-transform: uppercase;
+  color: #3C1838; padding: 8px 12px;
+  background: #E8C0C4; margin: 0;
+}
+.phone-tag-group label {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  color: #1A1C38;
+  padding: 10px 12px;
+  border-top: 1px solid #D8CCC0;
+  margin: 0;
+}
+.phone-tag-group input { width: auto; flex-shrink: 0; transform: scale(1.2); }
+.phone-book-genre { margin-bottom: 4px; }
 
 </style>
 </head>
@@ -1125,6 +1212,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
 
 <div class="phone-shelfbar phone-ui" id="phone-shelfbar">
   <input id="phone-search" type="search" placeholder="Search titles…" oninput="syncPhoneSearch(this.value)">
+  <button class="tb-btn phone-tag-btn" type="button" id="phone-tag-btn" onclick="openPhoneTags()">Tags</button>
   <button class="tb-btn" type="button" onclick="addRow()">＋ Add</button>
 </div>
 <div class="phone-cards phone-ui" id="phone-cards"></div>
@@ -1268,6 +1356,15 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   <div class="phone-sheet">
     <h2>Choose a shelf</h2>
     <div class="phone-sheet-body" id="phone-shelf-choices"></div>
+    <div class="phone-sheet-actions">
+      <button class="sync-btn-ghost ghost-sheet" type="button" onclick="closePhoneSheets()" style="flex:1;background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Close</button>
+    </div>
+  </div>
+</div>
+<div class="phone-sheet-overlay" id="phone-tag-overlay" onclick="if(event.target===this)closePhoneSheets()">
+  <div class="phone-sheet">
+    <h2>Tags</h2>
+    <div class="phone-sheet-body" id="phone-tag-choices"></div>
     <div class="phone-sheet-actions">
       <button class="sync-btn-ghost ghost-sheet" type="button" onclick="closePhoneSheets()" style="flex:1;background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Close</button>
     </div>
@@ -1824,11 +1921,13 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
       '<div class="discover-card-cover">' + coverHtml + '</div>'
       + '<div class="discover-card-body">'
       + '<div class="discover-card-title">' + escHtml(r.title) + '</div>'
-      + '<div class="discover-card-meta">' + escHtml(r.statusLabel)
-      + (r.chapters ? ' · ' + escHtml(r.chapters) + ' ch' : '') + '</div>'
-      + '<div class="discover-card-tags">' + allTags.map(function(t){
-          return '<span class="discover-tag">' + escHtml(t) + '</span>';
-        }).join('') + '</div>'
+      + '<div class="discover-card-meta">Chapter ' + escHtml(r.chapters || '—') + '</div>'
+      + '<div class="discover-card-meta">' + escHtml(r.statusLabel) + '</div>'
+      + (allTags.length
+          ? '<div class="discover-card-tags"><div class="phone-tag-heading">Tags</div>' + allTags.map(function(t){
+              return '<span class="discover-tag">' + escHtml(t) + '</span>';
+            }).join('') + '</div>'
+          : '<div class="discover-card-meta">No tags on file</div>')
       + '<div class="discover-card-actions">'
       + '<button class="discover-btn discover-btn-silver" data-action="view" data-idx="' + idx + '">View Details</button>'
       + '<button class="discover-btn" data-action="import" data-idx="' + idx + '">✦ Import</button>'
@@ -1876,8 +1975,8 @@ function openDiscoverDetail(idx) {
   }
   html += '<div class="discover-detail-note">Review these details, then add the volume manually in your library — or use ✦ Import on the card.</div>'
     + '<div class="discover-detail-row"><strong>Title</strong>' + escHtml(r.title) + '</div>'
-    + '<div class="discover-detail-row"><strong>Status</strong>' + escHtml(r.statusLabel) + '</div>'
-    + '<div class="discover-detail-row"><strong>Chapters</strong>' + escHtml(r.chapters || '—') + '</div>';
+    + '<div class="discover-detail-row"><strong>Chapter</strong>' + escHtml(r.chapters || '—') + '</div>'
+    + '<div class="discover-detail-row"><strong>Status</strong>' + escHtml(r.statusLabel) + '</div>';
   if (revealed) {
     html += '<div class="discover-detail-row"><strong>Genres & Tags</strong>' + escHtml(allTags.join(', ') || '—') + '</div>'
       + (r.comment ? '<div class="discover-detail-row"><strong>Summary</strong>' + escHtml(r.comment) + '</div>' : '');
@@ -3200,7 +3299,51 @@ function pickPhoneShelf(id) {
 function closePhoneSheets() {
   document.getElementById('phone-shelf-overlay').classList.remove('open');
   document.getElementById('phone-volume-overlay').classList.remove('open');
+  var tagOverlay = document.getElementById('phone-tag-overlay');
+  if (tagOverlay) tagOverlay.classList.remove('open');
   PHONE_EDIT_ID = null;
+}
+
+function phoneTagCount(tag) {
+  return DATA.filter(function(b) {
+    if (ACTIVE_TAB === 'favourites') { if (!b.favourite || b.blacklist) return false; }
+    else if (ACTIVE_TAB === 'blacklist') { if (!b.blacklist) return false; }
+    else if (sectionOf(b) !== ACTIVE_TAB) return false;
+    if (!tag) return true;
+    return b.subgenres && b.subgenres.indexOf(tag) !== -1;
+  }).length;
+}
+
+function updatePhoneTagBtn() {
+  var btn = document.getElementById('phone-tag-btn');
+  if (!btn) return;
+  var sel = document.getElementById('filter-subgenre');
+  var tag = sel ? sel.value : '';
+  btn.textContent = tag || 'Tags';
+  btn.classList.toggle('on', !!tag);
+}
+
+function openPhoneTags() {
+  var current = (document.getElementById('filter-subgenre') || {}).value || '';
+  var html = '<button class="phone-choice" type="button" onclick="pickPhoneTag(\'\')">All tags<small>' + phoneTagCount('') + '</small></button>';
+  Object.keys(SUBGENRES).forEach(function(group) {
+    html += '<div class="phone-tag-heading" style="margin:12px 0 6px">' + escHtml(group) + '</div>';
+    (SUBGENRES[group] || []).forEach(function(t) {
+      html += '<button class="phone-choice' + (t === current ? ' on' : '') + '" type="button" onclick="pickPhoneTag(' + JSON.stringify(t) + ')">'
+        + escHtml(t) + '<small>' + phoneTagCount(t) + '</small></button>';
+    });
+  });
+  document.getElementById('phone-tag-choices').innerHTML = html;
+  document.getElementById('phone-tag-overlay').classList.add('open');
+}
+
+function pickPhoneTag(tag) {
+  var sel = document.getElementById('filter-subgenre');
+  if (sel) sel.value = tag || '';
+  var tagOverlay = document.getElementById('phone-tag-overlay');
+  if (tagOverlay) tagOverlay.classList.remove('open');
+  applyFilters();
+  updatePhoneTagBtn();
 }
 
 function syncPhoneSearch(val) {
@@ -3218,21 +3361,29 @@ function renderPhoneCards() {
     phoneSearch.value = deskSearch.value;
   }
   var rows = (FILTERED && FILTERED.all) ? FILTERED.all : [];
+  updatePhoneTagBtn();
   if (!rows.length) {
-    list.innerHTML = '<div class="phone-empty">Nothing on this shelf yet. Tap ＋ Add, or Discover a title.</div>';
+    var tagFilter = (document.getElementById('filter-subgenre') || {}).value;
+    list.innerHTML = tagFilter
+      ? '<div class="phone-empty">No volumes with the tag “' + escHtml(tagFilter) + '”. Tap Tags to change.</div>'
+      : '<div class="phone-empty">Nothing on this shelf yet. Tap ＋ Add, or Discover a title.</div>';
     return;
   }
   list.innerHTML = rows.map(function(b) {
-    var sgs = (b.subgenres || []).slice(0, 4).map(function(t) {
-      return '<span class="discover-tag">' + escHtml(t) + '</span>';
-    }).join('');
+    var sgs = b.subgenres || [];
+    var tagHtml = sgs.length
+      ? '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list">' + sgs.map(function(t) {
+          return '<li>' + escHtml(t) + '</li>';
+        }).join('') + '</ul>'
+      : '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list"><li>None yet — tap to add</li></ul>';
     return '<article class="phone-book" onclick="openPhoneVolume(' + b.id + ')">'
       + '<div class="phone-book-title">' + escHtml(b.title || 'Untitled') + '</div>'
-      + '<div class="phone-book-ch">Ch. ' + escHtml(b.chapter || '—') + '</div>'
+      + '<div class="phone-book-ch"><span>Chapter</span>' + escHtml(b.chapter || '—') + '</div>'
       + '<div class="phone-book-sec">' + escHtml(sectionLabel(sectionOf(b)))
       + (b.favourite && !b.blacklist && ACTIVE_TAB !== 'favourites' ? ' · Favourite' : '')
       + '</div>'
-      + '<div class="phone-book-tags">' + genreBadge(b.genre) + sgs + '</div>'
+      + '<div class="phone-book-genre">' + genreBadge(b.genre) + '</div>'
+      + tagHtml
       + '</article>';
   }).join('');
 }
@@ -3253,20 +3404,22 @@ function openPhoneVolume(id) {
   for (var n = 1; n <= 5; n++) {
     ratingOpts += '<option value="' + n + '"' + (Number(b.rating) === n ? ' selected' : '') + '>' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>';
   }
-  var tags = (typeof ALL_SUBGENRES !== 'undefined' && ALL_SUBGENRES.length) ? ALL_SUBGENRES : Object.values(SUBGENRES).flat();
   var selected = b.subgenres || [];
-  var chips = tags.map(function(t) {
-    var on = selected.indexOf(t) !== -1;
-    return '<label><input type="checkbox" class="phone-sg" value="' + escHtml(t) + '"' + (on ? ' checked' : '') + '> ' + escHtml(t) + '</label>';
+  var groupHtml = Object.keys(SUBGENRES).map(function(group) {
+    var rows = (SUBGENRES[group] || []).map(function(t) {
+      var on = selected.indexOf(t) !== -1;
+      return '<label><input type="checkbox" class="phone-sg" value="' + escHtml(t) + '"' + (on ? ' checked' : '') + '> ' + escHtml(t) + '</label>';
+    }).join('');
+    return '<div class="phone-tag-group"><h3>' + escHtml(group) + '</h3>' + rows + '</div>';
   }).join('');
   document.getElementById('phone-volume-body').innerHTML =
     '<div class="phone-field"><label>Title</label><input id="pv-title" value="' + escHtml(b.title || '') + '"></div>'
+    + '<div class="phone-field"><label>Chapter</label><input id="pv-chapter" value="' + escHtml(b.chapter || '') + '" inputmode="text"></div>'
     + '<div class="phone-field"><label>Genre</label><select id="pv-genre">' + genreOpts + '</select></div>'
     + '<div class="phone-field"><label>Section</label><select id="pv-status">' + statusOpts + '</select></div>'
-    + '<div class="phone-field"><label>Chapter</label><input id="pv-chapter" value="' + escHtml(b.chapter || '') + '"></div>'
     + '<div class="phone-field"><label>Rating</label><select id="pv-rating">' + ratingOpts + '</select></div>'
     + '<div class="phone-field"><label>Comment</label><textarea id="pv-comment" rows="3">' + escHtml(b.comment || '') + '</textarea></div>'
-    + '<div class="phone-field"><label>Sub-genres</label><div class="phone-chips">' + chips + '</div></div>'
+    + '<div class="phone-field"><label>Tags</label></div>' + groupHtml
     + '<div class="phone-field"><label><input type="checkbox" id="pv-fav"' + (b.favourite ? ' checked' : '') + '> Favourite</label></div>'
     + '<div class="phone-field"><label><input type="checkbox" id="pv-bl"' + (b.blacklist ? ' checked' : '') + '> Blacklist</label></div>';
   document.getElementById('phone-volume-overlay').classList.add('open');
@@ -3284,7 +3437,7 @@ function savePhoneVolume() {
   b.comment = document.getElementById('pv-comment').value;
   b.favourite = document.getElementById('pv-fav').checked;
   b.blacklist = document.getElementById('pv-bl').checked;
-  b.subgenres = Array.prototype.map.call(document.querySelectorAll('.phone-sg:checked'), function(cb){ return cb.value; });
+  b.subgenres = Array.prototype.map.call(document.querySelectorAll('#phone-volume-overlay .phone-sg:checked'), function(cb){ return cb.value; });
   b._section = sectionOf(b);
   persist();
   closePhoneSheets();
