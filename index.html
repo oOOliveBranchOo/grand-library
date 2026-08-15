@@ -1245,7 +1245,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   <select class="tb-select" id="filter-genre" onchange="applyFilters()">
     <option value="">All Genres</option>
     <option value="BL">BL</option>
-    <option value="STRAIGHT">Straight</option>
+    <option value="STRAIGHT">STRAIGHT</option>
     <option value="OTHER">Other</option>
     <option value="YURI">Yuri</option>
     <option value="BLANK">No Genre</option>
@@ -1318,7 +1318,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
       <select class="discover-filter-select" id="discover-filter-genre" onchange="applyDiscoverFilters()" title="Main genre">
         <option value="">All Genres</option>
         <option value="BL">BL</option>
-        <option value="STRAIGHT">Straight</option>
+        <option value="STRAIGHT">STRAIGHT</option>
         <option value="OTHER">Other</option>
         <option value="YURI">Yuri</option>
       </select>
@@ -2982,9 +2982,9 @@ function toast(msg, type) {
 
 function genreBadge(g) {
   if(g==='BL')       return '<span class="badge badge-bl">BL</span>';
-  if(g==='STRAIGHT') return '<span class="badge badge-straight">Straight</span>';
-  if(g==='OTHER')    return '<span class="badge badge-other">Other</span>';
-  if(g==='YURI')     return '<span class="badge badge-yuri">Yuri</span>';
+  if(g==='STRAIGHT') return '<span class="badge badge-straight">STRAIGHT</span>';
+  if(g==='OTHER')    return '<span class="badge badge-other">OTHER</span>';
+  if(g==='YURI')     return '<span class="badge badge-yuri">YURI</span>';
   return '<span class="badge badge-blank">—</span>';
 }
 
@@ -3598,7 +3598,7 @@ function openPhoneVolume(id) {
   document.getElementById('phone-volume-title').textContent = b.title || 'Volume';
   var genres = ['BL','STRAIGHT','OTHER','YURI'];
   var genreOpts = '<option value="">—</option>' + genres.map(function(g) {
-    return '<option value="' + g + '"' + (b.genre === g ? ' selected' : '') + '>' + (g === 'STRAIGHT' ? 'Straight' : g) + '</option>';
+    return '<option value="' + g + '"' + (b.genre === g ? ' selected' : '') + '>' + g + '</option>';
   }).join('');
   var statusOpts = STATUS_OPTIONS.map(function(o) {
     return '<option value="' + o.val + '"' + (b.status === o.val ? ' selected' : '') + '>' + o.label + '</option>';
