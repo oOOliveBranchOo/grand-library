@@ -598,7 +598,7 @@ tbody tr.bl-row td { opacity: .5; }
 .discover-tag.sg-story { background: #E8C0C4; border-color: #C09098; color: #6A1020; }
 .discover-tag.sg-setting { background: #C8CADE; border-color: #9A9CB8; color: #1A1C38; }
 .discover-card-actions {
-  display: flex; gap: 8px; margin-top: auto; padding-top: 4px;
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 4px;
 }
 .discover-btn {
   flex: 1; padding: 6px 10px; border-radius: 2px; cursor: pointer;
@@ -1086,6 +1086,12 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 15px;
   border-radius: 2px; cursor: pointer;
 }
+.phone-volume-lookup {
+  flex: 1 1 100%;
+  background: #C8DCE8;
+  color: #1A3848;
+  border: 1px solid #7AAAC0;
+}
 .phone-sheet-actions .phone-remove {
   flex: 1 1 100%;
   background: #F5EFE6;
@@ -1124,9 +1130,10 @@ body:not(.compact-phone) .phone-home { display: none !important; }
   font-family: 'Cormorant Garamond', serif;
   font-size: 12px; font-weight: 600;
   letter-spacing: .7px; text-transform: uppercase;
-  color: #3C1838; padding: 8px 12px;
-  background: #E8C0C4; margin: 0;
+  padding: 8px 12px; margin: 0;
 }
+.phone-tag-group.phone-tag-story h3 { background: #E8C0C4; color: #6A1020; }
+.phone-tag-group.phone-tag-setting h3 { background: #C8CADE; color: #1A1C38; }
 .phone-tag-group label {
   display: flex !important;
   align-items: center;
@@ -1383,6 +1390,7 @@ body:not(.compact-phone) .phone-home { display: none !important; }
     <div class="phone-sheet-actions">
       <button type="button" id="phone-volume-cancel" onclick="closePhoneSheets()" style="background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Cancel</button>
       <button type="button" id="phone-volume-save" onclick="savePhoneVolume()" style="background:#9B3040;color:#F5EFE6;border:none">Save</button>
+      <button type="button" id="phone-volume-lookup" class="phone-volume-lookup" onclick="lookupPhoneVolumeTags()">Fill tags from Discover</button>
       <button type="button" class="phone-remove" onclick="deletePhoneVolume()">Remove this volume</button>
     </div>
   </div>
@@ -1944,11 +1952,19 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
       coverHtml = '<span class="no-cover">No cover on file</span>';
     }
 
+    var match = findLibraryMatch(r);
+    var actionBtns = '<button class="discover-btn discover-btn-silver" data-action="view" data-idx="' + idx + '">View Details</button>'
+      + (match
+          ? '<button class="discover-btn" data-action="update" data-idx="' + idx + '">Update tags</button>'
+            + '<button class="discover-btn discover-btn-silver" data-action="import-new" data-idx="' + idx + '">Add as new</button>'
+          : '<button class="discover-btn" data-action="import" data-idx="' + idx + '">✦ Import</button>');
+
     card.innerHTML =
       '<div class="discover-card-cover">' + coverHtml + '</div>'
       + '<div class="discover-card-body">'
       + '<div class="discover-card-title">' + escHtml(r.title) + '</div>'
       + (mappedPreview.genre ? '<div class="phone-book-genre">' + genreBadge(mappedPreview.genre) + '</div>' : '')
+      + (match ? '<div class="discover-card-meta">Already on your shelves as “' + escHtml(match.title) + '”</div>' : '')
       + '<div class="discover-card-meta">Chapter ' + escHtml(r.chapters || '—') + '</div>'
       + '<div class="discover-card-meta">' + escHtml(r.statusLabel) + '</div>'
       + (shownTags.length
@@ -1956,10 +1972,7 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
               return '<span class="' + discoverTagClass(t) + '">' + escHtml(t) + '</span>';
             }).join('') + '</div>'
           : '<div class="discover-card-meta">No tags on file</div>')
-      + '<div class="discover-card-actions">'
-      + '<button class="discover-btn discover-btn-silver" data-action="view" data-idx="' + idx + '">View Details</button>'
-      + '<button class="discover-btn" data-action="import" data-idx="' + idx + '">✦ Import</button>'
-      + '</div></div>';
+      + '<div class="discover-card-actions">' + actionBtns + '</div></div>';
     grid.appendChild(card);
   });
 
@@ -1982,7 +1995,11 @@ function renderDiscoverResults(results, sourceLabel, totalCount) {
         return;
       }
       if (isDiscoverMature(r) && !isDiscoverRevealed(r)) return;
-      importDiscoverResult(idx);
+      if (btn.getAttribute('data-action') === 'import-new') {
+        importDiscoverResult(idx, { forceNew: true });
+        return;
+      }
+      importDiscoverResult(idx, { update: btn.getAttribute('data-action') === 'update' });
     });
   });
 }
@@ -2013,7 +2030,12 @@ function openDiscoverDetail(idx) {
     + (r.muUrl ? '<div class="discover-detail-row"><strong>MangaUpdates</strong><a href="' + escHtml(r.muUrl) + '" target="_blank" rel="noopener">' + escHtml(r.muUrl) + '</a></div>' : '')
     + '<div class="sync-actions" style="margin-top:14px">';
   if (revealed) {
-    html += '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>';
+    var match = findLibraryMatch(r);
+    if (match) {
+      html += '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ', { update: true });closeDiscoverDetail()">Update “' + escHtml(match.title) + '”</button>';
+    } else {
+      html += '<button class="sync-btn" onclick="importDiscoverResult(' + idx + ');closeDiscoverDetail()">✦ Import to Library</button>';
+    }
   }
   html += '<button class="sync-btn sync-btn-ghost" onclick="closeDiscoverDetail()">Close</button>'
     + '</div>';
@@ -2032,11 +2054,19 @@ function closeDiscoverDetail() {
   document.getElementById('discover-detail-overlay').classList.remove('open');
 }
 
-function importDiscoverResult(idx) {
+function importDiscoverResult(idx, opts) {
   var r = DISCOVER_RESULTS[idx];
   if (!r) return;
-  var dup = DATA.some(function(b){ return b.title.toLowerCase() === r.title.toLowerCase(); });
-  if (dup && !confirm('“' + r.title + '” may already be in your library. Import anyway?')) return;
+  opts = opts || {};
+  if (opts.forceNew) {
+    PENDING_DISCOVER_TARGET = null;
+  } else {
+    var match = findLibraryMatch(r);
+    PENDING_DISCOVER_TARGET = match || null;
+    if (match && !opts.update) {
+      PENDING_DISCOVER_TARGET = match;
+    }
+  }
   var mapped = mapDiscoverTags(r.genres, collectDiscoverTags(r));
   if (mapped.unknownTags.length) {
     showNewTagApproval(mapped, r);
@@ -2046,6 +2076,22 @@ function importDiscoverResult(idx) {
 }
 
 function finishDiscoverImport(r, mapped) {
+  var existing = PENDING_DISCOVER_TARGET;
+  PENDING_DISCOVER_TARGET = null;
+  if (existing) {
+    var oldTitle = existing.title;
+    var stayOpen = isCompactPhone() && PHONE_EDIT_ID === existing.id;
+    applyDiscoverToBook(existing, r, mapped);
+    persist();
+    applyFilters();
+    var msg = oldTitle === existing.title
+      ? '✦ Tags updated on “' + existing.title + '”.'
+      : '✦ Updated “' + oldTitle + '” to “' + existing.title + '”.';
+    toast(msg, 'ok');
+    if (stayOpen) openPhoneVolume(existing.id);
+    else if (isCompactPhone()) pickPhoneShelf(sectionOf(existing));
+    return;
+  }
   var book = addBookEntry({
     title: r.title,
     status: r.status,
@@ -2328,6 +2374,107 @@ function discoverTagClass(name) {
   return 'discover-tag';
 }
 
+function canonicalTagName(tag) {
+  var mapped = mapSubgenresFromTags([tag]);
+  return mapped[0] || tag;
+}
+
+function canonicalizeBookTags(b) {
+  if (!b.subgenres) b.subgenres = [];
+  b.subgenres = uniqueTags(b.subgenres.map(canonicalTagName).filter(Boolean));
+}
+
+function canonicalizeLibraryTags() {
+  var changed = false;
+  DATA.forEach(function(b) {
+    var before = (b.subgenres || []).join('\n');
+    canonicalizeBookTags(b);
+    if ((b.subgenres || []).join('\n') !== before) changed = true;
+  });
+  return changed;
+}
+
+function normalizeTitleKey(s) {
+  return (s || '').toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\b(the|a|an)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+  var i, j, prev, cur = [], next;
+  for (j = 0; j <= b.length; j++) cur[j] = j;
+  for (i = 1; i <= a.length; i++) {
+    prev = cur;
+    cur = [i];
+    for (j = 1; j <= b.length; j++) {
+      next = prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1);
+      cur[j] = Math.min(next, prev[j] + 1, cur[j - 1] + 1);
+    }
+  }
+  return cur[b.length];
+}
+
+function titleSimilarity(a, b) {
+  var na = normalizeTitleKey(a), nb = normalizeTitleKey(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  var shorter = na.length <= nb.length ? na : nb;
+  var longer = na.length <= nb.length ? nb : na;
+  if (longer.indexOf(shorter) !== -1) {
+    return shorter.length / longer.length;
+  }
+  return 1 - (levenshtein(na, nb) / Math.max(na.length, nb.length));
+}
+
+function findLibraryMatch(r, minScore) {
+  minScore = minScore == null ? 0.78 : minScore;
+  var best = null, bestScore = 0;
+  DATA.forEach(function(b) {
+    var s = titleSimilarity(b.title, r.title);
+    if (s > bestScore) { bestScore = s; best = b; }
+  });
+  if (!best) return null;
+  var na = normalizeTitleKey(best.title), nb = normalizeTitleKey(r.title);
+  var lenRatio = Math.min(na.length, nb.length) / Math.max(na.length, nb.length);
+  if (lenRatio < 0.5 && na.indexOf(nb) === -1 && nb.indexOf(na) === -1) return null;
+  return bestScore >= minScore ? best : null;
+}
+
+function pickBestDiscoverResult(results, queryTitle) {
+  if (!results || !results.length) return null;
+  var best = results[0], bestScore = titleSimilarity(best.title, queryTitle);
+  results.forEach(function(r) {
+    var s = titleSimilarity(r.title, queryTitle);
+    if (s > bestScore) { bestScore = s; best = r; }
+  });
+  return bestScore >= 0.65 ? best : results[0];
+}
+
+function mergeBookTags(b, incoming) {
+  canonicalizeBookTags(b);
+  uniqueTags(incoming || []).forEach(function(t) {
+    var name = canonicalTagName(t);
+    if (name && b.subgenres.indexOf(name) === -1) b.subgenres.push(name);
+  });
+}
+
+function applyDiscoverToBook(b, r, mapped) {
+  if (r.title && r.title !== b.title) b.title = r.title;
+  if (mapped.genre && !b.genre) b.genre = mapped.genre;
+  if ((!b.chapter || b.chapter === '—') && r.chapters) b.chapter = r.chapters;
+  mergeBookTags(b, mapped.subgenres);
+  b._section = sectionOf(b);
+  return b;
+}
+
+var PENDING_DISCOVER_TARGET = null;
+
 var ALL_SUBGENRES = Object.values(SUBGENRES).flat();
 
 function sgClass(sg) {
@@ -2337,7 +2484,7 @@ function sgClass(sg) {
 function renderSgTags(sgs) {
   if(!sgs || !sgs.length) return '<div class="sg-empty">—</div>';
   return '<div class="sg-wrap">' + sgs.map(function(s){
-    return '<span class="sg-tag ' + sgClass(s) + '">' + s + '</span>';
+    return '<span class="sg-tag ' + discoverTagClass(s) + '">' + s + '</span>';
   }).join('') + '</div>';
 }
 
@@ -2469,6 +2616,7 @@ function init() {
     DATA = prep(RAW.completed,'completed').concat(prep(RAW.ongoing,'ongoing')).concat(prep(RAW.unknown,'unknown'));
     persist();
   }
+  if (canonicalizeLibraryTags()) persist();
   applyFilters();
 }
 
@@ -2715,6 +2863,7 @@ async function handleCloudLogin(user) {
 function applyRemoteData(remote, showToast) {
   CLOUD_SYNCING = true;
   DATA = remote.data || [];
+  canonicalizeLibraryTags();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     if (remote.exportedAt) localStorage.setItem(SYNC_TIME_KEY, remote.exportedAt);
@@ -3427,7 +3576,7 @@ function renderPhoneCards() {
     var sgs = b.subgenres || [];
     var tagHtml = sgs.length
       ? '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list">' + sgs.map(function(t) {
-          return '<li><span class="sg-tag ' + sgClass(t) + '">' + escHtml(t) + '</span></li>';
+          return '<li><span class="' + discoverTagClass(t) + '">' + escHtml(t) + '</span></li>';
         }).join('') + '</ul>'
       : '<div class="phone-tag-heading">Tags</div><ul class="phone-tag-list"><li>None yet — tap to add</li></ul>';
     return '<article class="phone-book" onclick="openPhoneVolume(' + b.id + ')">'
@@ -3464,7 +3613,7 @@ function openPhoneVolume(id) {
       var on = selected.indexOf(t) !== -1;
       return '<label><input type="checkbox" class="phone-sg" value="' + escHtml(t) + '"' + (on ? ' checked' : '') + '> ' + escHtml(t) + '</label>';
     }).join('');
-    return '<div class="phone-tag-group"><h3>' + escHtml(group) + '</h3>' + rows + '</div>';
+    return '<div class="phone-tag-group ' + (group === 'Setting' ? 'phone-tag-setting' : 'phone-tag-story') + '"><h3>' + escHtml(group) + '</h3>' + rows + '</div>';
   }).join('');
   document.getElementById('phone-volume-body').innerHTML =
     '<div class="phone-field"><label>Title</label><input id="pv-title" value="' + escHtml(b.title || '') + '"></div>'
@@ -3492,11 +3641,57 @@ function savePhoneVolume() {
   b.favourite = document.getElementById('pv-fav').checked;
   b.blacklist = document.getElementById('pv-bl').checked;
   b.subgenres = Array.prototype.map.call(document.querySelectorAll('#phone-volume-overlay .phone-sg:checked'), function(cb){ return cb.value; });
+  canonicalizeBookTags(b);
   b._section = sectionOf(b);
   persist();
   closePhoneSheets();
   applyFilters();
   toast('✦ Volume saved.', 'ok');
+}
+
+function lookupDiscoverTitle(q) {
+  function fromSource(searchFn) {
+    return searchFn(q).then(function(results) {
+      return pickBestDiscoverResult(results, q);
+    }, function() { return null; });
+  }
+  return fromSource(searchAnilist).then(function(r) {
+    if (r) return r;
+    return fromSource(searchKitsu).then(function(r2) {
+      if (r2) return r2;
+      return fromSource(searchJikan);
+    });
+  });
+}
+
+function lookupPhoneVolumeTags() {
+  var b = findBook(PHONE_EDIT_ID);
+  if (!b) return;
+  var titleInput = document.getElementById('pv-title');
+  var q = ((titleInput && titleInput.value) || b.title || '').trim();
+  if (q.length < 2) {
+    toast('Add a title first.', '');
+    return;
+  }
+  if (titleInput) b.title = q;
+  toast('Looking up Discover…', 'ok');
+  PENDING_DISCOVER_TARGET = b;
+  lookupDiscoverTitle(q).then(function(r) {
+    if (!r) {
+      PENDING_DISCOVER_TARGET = null;
+      toast('No Discover match for that title.', '');
+      return;
+    }
+    var mapped = mapDiscoverTags(r.genres, collectDiscoverTags(r));
+    if (mapped.unknownTags.length) {
+      showNewTagApproval(mapped, r);
+    } else {
+      finishDiscoverImport(r, mapped);
+    }
+  }, function() {
+    PENDING_DISCOVER_TARGET = null;
+    toast('Discover is unreachable right now.', '');
+  });
 }
 
 function deletePhoneVolume() {
