@@ -66,6 +66,7 @@ body {
 .grand-header {
   background: #E8C0C4;
   padding: 12px 20px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -715,6 +716,7 @@ tbody tr.bl-row td { opacity: .5; }
   background: radial-gradient(ellipse at top, #F5EFE6 0%, #E8D8CC 55%, #D8C4B0 100%);
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
 }
 #login-screen.hidden { display: none; }
 #app {
@@ -811,6 +813,233 @@ tbody tr.bl-row td { opacity: .5; }
   .login-card { padding: 30px 24px 26px; }
 }
 
+.phone-ui { display: none; }
+
+body.compact-phone .tabs-bar,
+body.compact-phone .footer,
+body.compact-phone #header-stats,
+body.compact-phone .logout-btn,
+body.compact-phone #whoami,
+body.compact-phone #library-toolbar { display: none !important; }
+body.compact-phone .grid-wrap { display: none !important; }
+body.compact-phone .grand-header { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+body.compact-phone .grand-title { font-size: 18px; }
+body.compact-phone .grand-subtitle { font-size: 13px; }
+body.compact-phone .phone-dock { display: flex !important; }
+body.compact-phone.phone-panel-account .phone-home { display: block !important; }
+body.compact-phone.phone-panel-shelf .phone-cards { display: block !important; }
+body.compact-phone.phone-panel-shelf .phone-shelfbar { display: flex !important; }
+body.compact-phone #app { padding-bottom: 0; }
+body.compact-phone .discover-wrap.active {
+  display: flex !important;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+body.compact-phone .discover-grid {
+  grid-template-columns: 1fr;
+}
+body.compact-phone .discover-card {
+  flex-direction: row;
+  align-items: stretch;
+}
+body.compact-phone .discover-card-cover {
+  width: 96px;
+  height: 136px;
+  flex-shrink: 0;
+  border-bottom: none;
+  border-right: 1px solid #D0C0B0;
+}
+body.compact-phone .discover-card-body { padding: 10px 12px; }
+body.compact-phone .discover-hint { display: none; }
+
+.phone-home {
+  flex: 1;
+  overflow: auto;
+  padding: 18px 16px calc(88px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+.phone-welcome {
+  text-align: center;
+  background: #F5EFE6;
+  border: 1px solid #C0A890;
+  border-radius: 4px;
+  padding: 28px 18px 22px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(60,30,20,.08);
+}
+.phone-welcome .script {
+  font-family: 'Pinyon Script', cursive;
+  font-size: 28px;
+  color: #6A1020;
+  display: block;
+}
+.phone-welcome .orn { color: #9B3040; margin: 10px 0; letter-spacing: 6px; }
+.phone-welcome p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--quill);
+  margin: 0 auto;
+  max-width: 420px;
+}
+.phone-account-chip {
+  display: inline-block;
+  margin-top: 14px;
+  background: #C8CADE;
+  border: 1px solid #9A9CB8;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.phone-home-links { display: grid; gap: 8px; }
+.phone-home-link {
+  width: 100%; text-align: left; padding: 12px 14px;
+  background: #F5EFE6; border: 1px solid #C8B8A8; border-radius: 4px;
+  font-family: 'EB Garamond', serif; cursor: pointer;
+}
+.phone-home-link b {
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; color: var(--ink);
+}
+.phone-home-link span { font-size: 13px; color: #7A6858; font-style: italic; }
+
+.phone-shelfbar {
+  display: none;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #C8CADE;
+  border-bottom: 1px solid #9A9CB8;
+  flex-shrink: 0;
+}
+body.compact-phone.phone-panel-shelf .phone-shelfbar { display: flex; }
+.phone-shelfbar input {
+  flex: 1; font-size: 16px; font-family: 'EB Garamond', serif;
+  padding: 10px 12px; border: 1px solid #9AAAC0; border-bottom: 2px solid #5A8AA8;
+  background: #F5EFE6; border-radius: 2px; color: #1A1C38;
+}
+.phone-cards {
+  display: none;
+  flex: 1;
+  overflow: auto;
+  padding: 12px 12px calc(88px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+body.compact-phone.phone-panel-shelf .phone-cards { display: block; }
+body.compact-phone.phone-panel-account .phone-home { display: block; }
+body.compact-phone.phone-panel-discover .phone-home,
+body.compact-phone.phone-panel-shelf .phone-home { display: none; }
+body:not(.compact-phone) .phone-home { display: none !important; }
+
+.phone-book {
+  background: #F5EFE6;
+  border: 1px solid #C0A890;
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  align-items: baseline;
+  cursor: pointer;
+}
+.phone-book:active { background: #EDE5D8; }
+.phone-book-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px; font-weight: 600; color: var(--ink);
+  line-height: 1.25;
+}
+.phone-book-ch { font-size: 13px; color: #5C4A3A; }
+.phone-book-sec {
+  grid-column: 1 / -1;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 10px; letter-spacing: .6px; text-transform: uppercase; color: #7A6858;
+}
+.phone-empty {
+  text-align: center; padding: 40px 16px;
+  font-style: italic; color: #8A7A6A;
+}
+
+.phone-dock {
+  display: none;
+  position: sticky;
+  bottom: 0;
+  background: #E8C0C4;
+  border-top: 2px solid #C09098;
+  padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  flex-shrink: 0;
+}
+.phone-dock button {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-size: 11px; font-weight: 600;
+  letter-spacing: .4px; text-transform: uppercase; color: #6A1020; padding: 8px 2px;
+}
+.phone-dock button.on { background: rgba(245,239,230,.55); }
+.phone-dock button span { display: block; font-size: 17px; margin-bottom: 1px; }
+
+.phone-sheet-overlay {
+  position: fixed; inset: 0; z-index: 520;
+  background: rgba(26,28,56,.45);
+  display: none; align-items: flex-end;
+}
+.phone-sheet-overlay.open { display: flex; }
+.phone-sheet {
+  width: 100%;
+  max-height: 88%;
+  background: var(--cream);
+  border-top: 2px solid #C0A890;
+  border-radius: 14px 14px 0 0;
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.phone-sheet h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px; color: var(--ink);
+  padding: 16px 16px 8px; flex-shrink: 0;
+}
+.phone-sheet-body {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 16px 16px;
+  flex: 1;
+}
+.phone-sheet-actions {
+  display: flex; gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #D0C0B0;
+  background: #F5EFE6;
+  flex-shrink: 0;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.phone-sheet-actions button {
+  flex: 1; padding: 14px;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 15px;
+  border-radius: 2px; cursor: pointer;
+}
+.phone-choice {
+  width: 100%; text-align: left; padding: 14px 12px; margin-bottom: 6px;
+  background: #F5EFE6; border: 1px solid #C8B8A8; border-radius: 4px;
+  font-family: 'Cormorant Garamond', serif; font-size: 16px; cursor: pointer;
+}
+.phone-choice small { float: right; font-family: 'EB Garamond', serif; font-style: italic; color: #7A6858; }
+.phone-field { margin-bottom: 12px; }
+.phone-field label {
+  display: block;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; font-weight: 600; letter-spacing: .7px;
+  text-transform: uppercase; color: #7A6858; margin-bottom: 4px;
+}
+.phone-field input, .phone-field select, .phone-field textarea {
+  width: 100%; padding: 10px 12px;
+  font-family: 'EB Garamond', serif; font-size: 16px;
+  border: 1px solid #C8B8A8; border-bottom: 2px solid #9B3040;
+  background: #fff; border-radius: 2px;
+}
+.phone-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.phone-chips label {
+  font-size: 12px; padding: 5px 8px; background: #E8D8C8;
+  border: 1px solid #C8B8A8; border-radius: 2px;
+  text-transform: none; letter-spacing: 0; font-weight: 500;
+}
+
 </style>
 </head>
 <body>
@@ -851,6 +1080,44 @@ tbody tr.bl-row td { opacity: .5; }
     <button class="logout-btn" type="button" onclick="logout()">Log Out</button>
   </div>
 </header>
+
+<div class="phone-home phone-ui" id="phone-home">
+  <div class="phone-welcome">
+    <span class="script">Hello, reader</span>
+    <div class="orn">✦ ❧ ✦</div>
+    <p>Everyone who loves manga, manhwa, anime, and novels is welcome here. Step a little further into those worlds — keep your shelves, find the next volume, and linger with the stories that stay with you.</p>
+    <div class="phone-account-chip" id="phone-account-chip">Signed in</div>
+  </div>
+  <div class="phone-home-links">
+    <button class="phone-home-link" type="button" onclick="openPhoneShelves()">
+      <b>✦ The Shelves</b><span>Completed, Ongoing, Queue, Favourites, Blacklist</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="goPhonePanel('discover')">
+      <b>✧ Discover</b><span>Search the archives and import a title</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="openSyncModal()">
+      <b>☁ Sync &amp; backup</b><span>Keep phone and computer in step</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="exportBackup()">
+      <b>Backup</b><span>Save a copy of your library</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="document.getElementById('import-file').click()">
+      <b>Import</b><span>Restore from a backup file</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="exportCSV()">
+      <b>Export CSV</b><span>Download your list</span>
+    </button>
+    <button class="phone-home-link" type="button" onclick="logout()">
+      <b>Log Out</b><span>Leave the stacks for now</span>
+    </button>
+  </div>
+</div>
+
+<div class="phone-shelfbar phone-ui" id="phone-shelfbar">
+  <input id="phone-search" type="search" placeholder="Search titles…" oninput="syncPhoneSearch(this.value)">
+  <button class="tb-btn" type="button" onclick="addRow()">＋ Add</button>
+</div>
+<div class="phone-cards phone-ui" id="phone-cards"></div>
 
 <div class="tabs-bar">
   <button class="tab-btn" id="tab-completed" onclick="switchTab('completed')">✦ Completed <span class="tab-count" id="tc-completed"></span></button>
@@ -980,7 +1247,32 @@ tbody tr.bl-row td { opacity: .5; }
   <div class="footer-info" id="footer-info"></div>
   <div class="footer-save" id="footer-save">✦ Saved on this device</div>
 </div>
+<nav class="phone-dock phone-ui" id="phone-dock">
+  <button type="button" id="dock-shelf" onclick="openPhoneShelves()"><span>✦</span>Shelves</button>
+  <button type="button" id="dock-discover" onclick="goPhonePanel('discover')"><span>✧</span>Discover</button>
+  <button type="button" id="dock-account" onclick="goPhonePanel('account')"><span>❦</span>Account</button>
+</nav>
 </div><!-- #app -->
+
+<div class="phone-sheet-overlay" id="phone-shelf-overlay" onclick="if(event.target===this)closePhoneSheets()">
+  <div class="phone-sheet">
+    <h2>Choose a shelf</h2>
+    <div class="phone-sheet-body" id="phone-shelf-choices"></div>
+    <div class="phone-sheet-actions">
+      <button class="sync-btn-ghost ghost-sheet" type="button" onclick="closePhoneSheets()" style="flex:1;background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Close</button>
+    </div>
+  </div>
+</div>
+<div class="phone-sheet-overlay" id="phone-volume-overlay" onclick="if(event.target===this)closePhoneSheets()">
+  <div class="phone-sheet">
+    <h2 id="phone-volume-title">Volume</h2>
+    <div class="phone-sheet-body" id="phone-volume-body"></div>
+    <div class="phone-sheet-actions">
+      <button type="button" id="phone-volume-cancel" onclick="closePhoneSheets()" style="background:#F5EFE6;color:#6A1020;border:1px solid #C09098">Cancel</button>
+      <button type="button" id="phone-volume-save" onclick="savePhoneVolume()" style="background:#9B3040;color:#F5EFE6;border:none">Save</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast"></div>
 <div id="dd-overlay" class="dd-overlay" style="display:none;"></div>
@@ -1044,6 +1336,8 @@ var cloudUnsub = null;
 var cloudUser = null;
 var cloudReady = false;
 var APP_READY = false;
+var PHONE_PANEL = 'account';
+var PHONE_EDIT_ID = null;
 
 
 var RAW = {"completed": [], "ongoing": [], "unknown": []};
@@ -1612,6 +1906,7 @@ function finishDiscoverImport(r, mapped) {
     subgenres: mapped.subgenres
   });
   toast('✦ “' + book.title + '” added to ' + sectionLabel(sectionOf(book)) + '.', 'ok');
+  if (isCompactPhone()) pickPhoneShelf(sectionOf(book));
 }
 
 var PENDING_TAG_IMPORT = null;
@@ -1691,10 +1986,15 @@ function onDiscoverSearchInput() {
 }
 
 function updateLibraryVisibility() {
-  var isDiscover = ACTIVE_TAB === 'discover';
-  document.getElementById('library-toolbar').style.display = isDiscover ? 'none' : 'flex';
-  document.getElementById('grid-wrap').style.display = isDiscover ? 'none' : 'block';
+  refreshLayoutMode();
+  var compact = isCompactPhone();
+  var isDiscover = compact ? (PHONE_PANEL === 'discover') : (ACTIVE_TAB === 'discover');
+  if (!compact) {
+    document.getElementById('library-toolbar').style.display = isDiscover ? 'none' : 'flex';
+    document.getElementById('grid-wrap').style.display = isDiscover ? 'none' : 'block';
+  }
   document.getElementById('discover-wrap').classList.toggle('active', isDiscover);
+  if (compact) renderPhoneCards();
 }
 
 
@@ -2174,6 +2474,7 @@ function refreshSyncModal() {
   if (btn) btn.textContent = signedIn ? '☁ Synced' : '☁ Sync Account';
   var who = document.getElementById('whoami');
   if (who) who.textContent = signedIn ? ('✦ ' + cloudUser.email) : '';
+  updatePhoneAccountChip();
 }
 
 function cloudSignIn() {
@@ -2500,6 +2801,7 @@ function renderTable() {
   tbody.innerHTML='';
   tbody.appendChild(frag);
   updateStats();
+  renderPhoneCards();
 }
 
 function updateStats() {
@@ -2802,8 +3104,172 @@ function openContextMenu(id, td, e) {
   overlay.style.left=rect.left+'px';
 }
 
+function isCompactPhone() {
+  return window.matchMedia('(max-width: 859px)').matches;
+}
+
+function refreshLayoutMode() {
+  var compact = isCompactPhone();
+  document.body.classList.toggle('compact-phone', compact);
+  document.body.classList.toggle('phone-panel-account', compact && PHONE_PANEL === 'account');
+  document.body.classList.toggle('phone-panel-shelf', compact && PHONE_PANEL === 'shelf');
+  document.body.classList.toggle('phone-panel-discover', compact && PHONE_PANEL === 'discover');
+  updatePhoneAccountChip();
+  var s = document.getElementById('dock-shelf');
+  var d = document.getElementById('dock-discover');
+  var a = document.getElementById('dock-account');
+  if (s) s.classList.toggle('on', PHONE_PANEL === 'shelf');
+  if (d) d.classList.toggle('on', PHONE_PANEL === 'discover');
+  if (a) a.classList.toggle('on', PHONE_PANEL === 'account');
+}
+
+function updatePhoneAccountChip() {
+  var el = document.getElementById('phone-account-chip');
+  if (!el) return;
+  el.textContent = cloudUser && cloudUser.email
+    ? ('Signed in as ' + cloudUser.email)
+    : 'Signed in on this device';
+}
+
+function goPhonePanel(panel) {
+  PHONE_PANEL = panel;
+  if (panel === 'discover') {
+    switchTab('discover');
+    return;
+  }
+  if (panel === 'shelf' && ACTIVE_TAB === 'discover') {
+    switchTab('completed');
+    return;
+  }
+  refreshLayoutMode();
+  updateLibraryVisibility();
+  if (panel === 'shelf') applyFilters();
+}
+
+function phoneShelfCount(id) {
+  return DATA.filter(function(b) {
+    if (id === 'favourites') return b.favourite && !b.blacklist;
+    if (id === 'blacklist') return !!b.blacklist;
+    return sectionOf(b) === id;
+  }).length;
+}
+
+function openPhoneShelves() {
+  var items = [
+    { id: 'completed', label: '✦ Completed' },
+    { id: 'ongoing', label: '✦ Ongoing' },
+    { id: 'unknown', label: '✦ Queue' },
+    { id: 'favourites', label: '❤ Favourites' },
+    { id: 'blacklist', label: '💀 Blacklist' }
+  ];
+  document.getElementById('phone-shelf-choices').innerHTML = items.map(function(s) {
+    return '<button class="phone-choice" type="button" onclick="pickPhoneShelf(\'' + s.id + '\')">'
+      + s.label + '<small>' + phoneShelfCount(s.id) + '</small></button>';
+  }).join('');
+  document.getElementById('phone-shelf-overlay').classList.add('open');
+}
+
+function pickPhoneShelf(id) {
+  closePhoneSheets();
+  PHONE_PANEL = 'shelf';
+  switchTab(id);
+}
+
+function closePhoneSheets() {
+  document.getElementById('phone-shelf-overlay').classList.remove('open');
+  document.getElementById('phone-volume-overlay').classList.remove('open');
+  PHONE_EDIT_ID = null;
+}
+
+function syncPhoneSearch(val) {
+  document.getElementById('search').value = val;
+  applyFilters();
+}
+
+function renderPhoneCards() {
+  var list = document.getElementById('phone-cards');
+  if (!list) return;
+  if (!isCompactPhone() || PHONE_PANEL !== 'shelf') return;
+  var phoneSearch = document.getElementById('phone-search');
+  var deskSearch = document.getElementById('search');
+  if (phoneSearch && deskSearch && document.activeElement !== phoneSearch) {
+    phoneSearch.value = deskSearch.value;
+  }
+  var rows = (FILTERED && FILTERED.all) ? FILTERED.all : [];
+  if (!rows.length) {
+    list.innerHTML = '<div class="phone-empty">Nothing on this shelf yet. Tap ＋ Add, or Discover a title.</div>';
+    return;
+  }
+  list.innerHTML = rows.map(function(b) {
+    return '<article class="phone-book" onclick="openPhoneVolume(' + b.id + ')">'
+      + '<div class="phone-book-title">' + escHtml(b.title || 'Untitled') + '</div>'
+      + '<div class="phone-book-ch">Ch. ' + escHtml(b.chapter || '—') + '</div>'
+      + '<div class="phone-book-sec">' + escHtml(sectionLabel(sectionOf(b)))
+      + (b.favourite && !b.blacklist && ACTIVE_TAB !== 'favourites' ? ' · Favourite' : '')
+      + '</div></article>';
+  }).join('');
+}
+
+function openPhoneVolume(id) {
+  var b = findBook(id);
+  if (!b) return;
+  PHONE_EDIT_ID = id;
+  document.getElementById('phone-volume-title').textContent = b.title || 'Volume';
+  var genres = ['BL','STRAIGHT','OTHER','YURI'];
+  var genreOpts = '<option value="">—</option>' + genres.map(function(g) {
+    return '<option value="' + g + '"' + (b.genre === g ? ' selected' : '') + '>' + (g === 'STRAIGHT' ? 'Straight' : g) + '</option>';
+  }).join('');
+  var statusOpts = STATUS_OPTIONS.map(function(o) {
+    return '<option value="' + o.val + '"' + (b.status === o.val ? ' selected' : '') + '>' + o.label + '</option>';
+  }).join('');
+  var ratingOpts = '<option value="">Unrated</option>';
+  for (var n = 1; n <= 5; n++) {
+    ratingOpts += '<option value="' + n + '"' + (Number(b.rating) === n ? ' selected' : '') + '>' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>';
+  }
+  var tags = (typeof ALL_SUBGENRES !== 'undefined' && ALL_SUBGENRES.length) ? ALL_SUBGENRES : Object.values(SUBGENRES).flat();
+  var selected = b.subgenres || [];
+  var chips = tags.map(function(t) {
+    var on = selected.indexOf(t) !== -1;
+    return '<label><input type="checkbox" class="phone-sg" value="' + escHtml(t) + '"' + (on ? ' checked' : '') + '> ' + escHtml(t) + '</label>';
+  }).join('');
+  document.getElementById('phone-volume-body').innerHTML =
+    '<div class="phone-field"><label>Title</label><input id="pv-title" value="' + escHtml(b.title || '') + '"></div>'
+    + '<div class="phone-field"><label>Genre</label><select id="pv-genre">' + genreOpts + '</select></div>'
+    + '<div class="phone-field"><label>Section</label><select id="pv-status">' + statusOpts + '</select></div>'
+    + '<div class="phone-field"><label>Chapter</label><input id="pv-chapter" value="' + escHtml(b.chapter || '') + '"></div>'
+    + '<div class="phone-field"><label>Rating</label><select id="pv-rating">' + ratingOpts + '</select></div>'
+    + '<div class="phone-field"><label>Comment</label><textarea id="pv-comment" rows="3">' + escHtml(b.comment || '') + '</textarea></div>'
+    + '<div class="phone-field"><label>Sub-genres</label><div class="phone-chips">' + chips + '</div></div>'
+    + '<div class="phone-field"><label><input type="checkbox" id="pv-fav"' + (b.favourite ? ' checked' : '') + '> Favourite</label></div>'
+    + '<div class="phone-field"><label><input type="checkbox" id="pv-bl"' + (b.blacklist ? ' checked' : '') + '> Blacklist</label></div>';
+  document.getElementById('phone-volume-overlay').classList.add('open');
+}
+
+function savePhoneVolume() {
+  var b = findBook(PHONE_EDIT_ID);
+  if (!b) { closePhoneSheets(); return; }
+  b.title = (document.getElementById('pv-title').value || '').trim() || b.title;
+  b.genre = document.getElementById('pv-genre').value;
+  b.status = document.getElementById('pv-status').value;
+  b.chapter = (document.getElementById('pv-chapter').value || '').trim();
+  var rating = document.getElementById('pv-rating').value;
+  b.rating = rating === '' ? null : Number(rating);
+  b.comment = document.getElementById('pv-comment').value;
+  b.favourite = document.getElementById('pv-fav').checked;
+  b.blacklist = document.getElementById('pv-bl').checked;
+  b.subgenres = Array.prototype.map.call(document.querySelectorAll('.phone-sg:checked'), function(cb){ return cb.value; });
+  b._section = sectionOf(b);
+  persist();
+  closePhoneSheets();
+  applyFilters();
+  toast('✦ Volume saved.', 'ok');
+}
+
 startAuth();
-switchTab('completed');
+refreshLayoutMode();
+if (isCompactPhone()) goPhonePanel('account');
+else switchTab('completed');
+window.addEventListener('resize', function(){ refreshLayoutMode(); updateLibraryVisibility(); });
 
 document.getElementById('login-form').addEventListener('submit', function(e) {
   e.preventDefault();
@@ -2835,19 +3301,32 @@ addRow = function() {
     status: statusMap[ACTIVE_TAB] || '',
     chapter: '',
     rating: null,
-    comment: ''
+    comment: '',
+    favourite: ACTIVE_TAB === 'favourites'
   });
+  if (ACTIVE_TAB === 'blacklist') {
+    book.blacklist = true;
+    book._section = sectionOf(book);
+    persist();
+  }
   document.getElementById('search').value='';
   document.getElementById('filter-genre').value='';
   document.getElementById('filter-subgenre').value='';
   applyFilters();
-  setTimeout(function(){
-    var wrap = document.getElementById('grid-wrap');
-    wrap.scrollTop = wrap.scrollHeight;
-    var rows = document.querySelectorAll('#tbody tr');
-    var last = rows[rows.length-1];
-    if(last){ last.classList.add('selected'); startEdit(book.id,'title',last.cells[2]); }
-  }, 60);
+  if (isCompactPhone()) {
+    PHONE_PANEL = 'shelf';
+    refreshLayoutMode();
+    updateLibraryVisibility();
+    openPhoneVolume(book.id);
+  } else {
+    setTimeout(function(){
+      var wrap = document.getElementById('grid-wrap');
+      wrap.scrollTop = wrap.scrollHeight;
+      var rows = document.querySelectorAll('#tbody tr:not(.section-header)');
+      var last = rows[rows.length-1];
+      if(last && last.cells[2]){ last.classList.add('selected'); startEdit(book.id,'title',last.cells[2]); }
+    }, 60);
+  }
   toast('New volume added to '+sectionLabel(sectionOf(book))+'.','ok');
 };
 
