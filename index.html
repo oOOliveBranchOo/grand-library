@@ -2416,8 +2416,32 @@ function significantTokens(s) {
   return normalizeTitleKey(s).split(' ').filter(function(w){ return w.length > 1; });
 }
 
+function isWeakTitleToken(w) {
+  return /^\d+(st|nd|rd|th)?$/.test(w)
+    || /^(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)$/.test(w)
+    || /^(vol|volume|chapter|ch|part|season|arc|side|story)$/.test(w);
+}
+
+function contentTokens(s) {
+  return significantTokens(s).filter(function(w){ return !isWeakTitleToken(w); });
+}
+
+function titlesConflict(a, b) {
+  var ca = contentTokens(a), cb = contentTokens(b);
+  if (!ca.length || !cb.length) return false;
+  var setA = {}, setB = {};
+  ca.forEach(function(w){ setA[w] = 1; });
+  cb.forEach(function(w){ setB[w] = 1; });
+  var shared = ca.filter(function(w){ return setB[w]; });
+  var onlyA = ca.filter(function(w){ return !setB[w]; });
+  var onlyB = cb.filter(function(w){ return !setA[w]; });
+  // "101st Heroine" vs "101st Confession" share no content words — different works.
+  if (!shared.length && onlyA.length && onlyB.length) return true;
+  return false;
+}
+
 function tokenSimilarity(a, b) {
-  var ta = significantTokens(a), tb = significantTokens(b);
+  var ta = contentTokens(a), tb = contentTokens(b);
   if (!ta.length || !tb.length) return 0;
   var set = {};
   tb.forEach(function(w){ set[w] = 1; });
@@ -2429,6 +2453,7 @@ function tokenSimilarity(a, b) {
 }
 
 function titleSimilarity(a, b) {
+  if (titlesConflict(a, b)) return 0;
   var na = normalizeTitleKey(a), nb = normalizeTitleKey(b);
   if (!na || !nb) return 0;
   if (na === nb) return 1;
@@ -2446,40 +2471,73 @@ function titleSimilarity(a, b) {
 function bookTitles(b) {
   var list = [b.title, b.discoverTitle];
   if (Array.isArray(b.altTitles)) list = list.concat(b.altTitles);
-  return uniqueTags(list);
+  return uniqueTags(list).filter(function(t) {
+    return t && !titlesConflict(b.title, t);
+  });
+}
+
+function scrubBookAltTitles(b) {
+  if (!b) return false;
+  var changed = false;
+  if (Array.isArray(b.altTitles)) {
+    var cleaned = b.altTitles.filter(function(t) {
+      return t && normalizeTitleKey(t) !== normalizeTitleKey(b.title) && !titlesConflict(b.title, t);
+    });
+    if (cleaned.length !== b.altTitles.length) {
+      b.altTitles = cleaned;
+      changed = true;
+    }
+  }
+  if (b.discoverTitle && titlesConflict(b.title, b.discoverTitle)) {
+    b.discoverTitle = '';
+    changed = true;
+  }
+  return changed;
+}
+
+function scrubLibraryAltTitles() {
+  var changed = false;
+  DATA.forEach(function(b) {
+    if (scrubBookAltTitles(b)) changed = true;
+  });
+  return changed;
 }
 
 function rememberDiscoverIdentity(b, r) {
   if (!b.altTitles) b.altTitles = [];
   uniqueTags([b.title, r.title].concat(r.altNames || [])).forEach(function(t) {
-    if (t && b.altTitles.indexOf(t) === -1) b.altTitles.push(t);
+    if (!t || titlesConflict(b.title, t)) return;
+    if (b.altTitles.indexOf(t) === -1) b.altTitles.push(t);
   });
   if (r.source) b.discoverSource = r.source;
   if (r.sourceId) b.discoverId = String(r.sourceId);
-  if (r.title) b.discoverTitle = r.title;
+  if (r.title && !titlesConflict(b.title, r.title)) b.discoverTitle = r.title;
 }
 
 function findLibraryMatch(r, minScore) {
-  minScore = minScore == null ? 0.72 : minScore;
+  minScore = minScore == null ? 0.78 : minScore;
   if (!r) return null;
   var byId = null;
   if (r.source && r.sourceId) {
     DATA.forEach(function(b) {
       if (b.discoverSource === r.source && String(b.discoverId || '') === String(r.sourceId)) byId = b;
     });
-    if (byId) return byId;
+    if (byId && !titlesConflict(byId.title, r.title)) return byId;
   }
   var names = uniqueTags([r.title].concat(r.altNames || []));
   var best = null, bestScore = 0;
   DATA.forEach(function(b) {
+    if (titlesConflict(b.title, r.title)) return;
     bookTitles(b).forEach(function(bt) {
       names.forEach(function(nt) {
+        if (titlesConflict(bt, nt) || titlesConflict(b.title, nt)) return;
         var s = titleSimilarity(bt, nt);
         if (s > bestScore) { bestScore = s; best = b; }
       });
     });
   });
   if (!best) return null;
+  if (titlesConflict(best.title, r.title)) return null;
   var na = normalizeTitleKey(best.title), nb = normalizeTitleKey(r.title);
   var lenRatio = Math.min(na.length, nb.length) / Math.max(na.length || 1, nb.length || 1);
   if (lenRatio < 0.45 && na.indexOf(nb) === -1 && nb.indexOf(na) === -1 && bestScore < 0.9) return null;
@@ -2674,7 +2732,9 @@ function init() {
     DATA = prep(RAW.completed,'completed').concat(prep(RAW.ongoing,'ongoing')).concat(prep(RAW.unknown,'unknown'));
     persist();
   }
-  if (canonicalizeLibraryTags()) persist();
+  var libraryTouched = canonicalizeLibraryTags();
+  if (scrubLibraryAltTitles()) libraryTouched = true;
+  if (libraryTouched) persist();
   applyFilters();
 }
 
@@ -2922,6 +2982,7 @@ function applyRemoteData(remote, showToast) {
   CLOUD_SYNCING = true;
   DATA = remote.data || [];
   canonicalizeLibraryTags();
+  scrubLibraryAltTitles();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
     if (remote.exportedAt) localStorage.setItem(SYNC_TIME_KEY, remote.exportedAt);
